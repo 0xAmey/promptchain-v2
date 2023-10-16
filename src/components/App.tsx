@@ -895,7 +895,9 @@ function App() {
 
         if (!modelList.includes(settings.model)) {
           const oldModel = settings.model;
-          const newModel = modelList.includes(DEFAULT_SETTINGS.model) ? DEFAULT_SETTINGS.model : modelList[0];
+          const newModel = modelList.includes(DEFAULT_SETTINGS.model)
+            ? DEFAULT_SETTINGS.model
+            : modelList[0];
 
           setSettings((settings) => ({ ...settings, model: newModel }));
 
@@ -911,7 +913,7 @@ function App() {
   }, [apiKey]);
 
   const isAnythingSaving = isSavingReactFlow || isSavingSettings;
-  const isAnythingLoading = isAnythingSaving || (availableModels === null);
+  const isAnythingLoading = isAnythingSaving || availableModels === null;
 
   useBeforeunload((event: BeforeUnloadEvent) => {
     // Prevent leaving the page before saving.
@@ -1029,7 +1031,7 @@ function App() {
   useHotkeys(`${modifierKey}+return`, () => submitPrompt(false), HOTKEY_CONFIG);
   useHotkeys(`${modifierKey}+shift+return`, () => submitPrompt(true), HOTKEY_CONFIG);
   useHotkeys(`${modifierKey}+k`, completeNextWords, HOTKEY_CONFIG);
-  useHotkeys(`${modifierKey}+backspace`, deleteSelectedNodes, HOTKEY_CONFIG);
+  // useHotkeys(`${modifierKey}+backspace`, deleteSelectedNodes, HOTKEY_CONFIG);
   useHotkeys(`${modifierKey}+shift+c`, copyMessagesToClipboard, HOTKEY_CONFIG);
 
   /*//////////////////////////////////////////////////////////////
@@ -1057,8 +1059,8 @@ function App() {
       >
         <Row mainAxisAlignment="flex-start" crossAxisAlignment="stretch" expand>
           <Resizable
-            maxWidth="75%"
-            minWidth="15%"
+            maxWidth="70%"
+            minWidth="0%"
             defaultSize={{
               // Defaults to the previously used chat size if it exists.
               width: savedChatSize || "50%",
@@ -1174,6 +1176,7 @@ function App() {
           <Box height="100%" width="100%" overflowY="scroll" p={4}>
             {selectedNodeLineage.length >= 1 ? (
               <Prompt
+                selectedNodeId={selectedNodeId}
                 settings={settings}
                 setSettings={setSettings}
                 isGPT4={isGPT4}

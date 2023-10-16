@@ -7,7 +7,7 @@ import { BigButton } from "./utils/BigButton";
 import { LabeledSlider } from "./utils/LabeledInputs";
 import { Markdown } from "./utils/Markdown";
 import { EditIcon, ViewIcon, NotAllowedIcon } from "@chakra-ui/icons";
-import { Spinner, Text, Button } from "@chakra-ui/react";
+import { Spinner, Text, Button, flexbox, Box, Flex } from "@chakra-ui/react";
 import mixpanel from "mixpanel-browser";
 import { useState, useEffect, useRef } from "react";
 import TextareaAutosize from "react-textarea-autosize";
@@ -16,6 +16,7 @@ import { getPlatformModifierKeyText } from "../utils/platform";
 import { Whisper } from "./utils/Whisper";
 
 export function Prompt({
+  selectedNodeId,
   lineage,
   submitPrompt,
   onType,
@@ -26,6 +27,7 @@ export function Prompt({
   setSettings,
   apiKey,
 }: {
+  selectedNodeId: string | null;
   lineage: Node<FluxNodeData>[];
   onType: (text: string) => void;
   submitPrompt: () => Promise<void>;
@@ -113,207 +115,303 @@ export function Prompt({
   const modifierKeyText = getPlatformModifierKeyText();
 
   return (
-    <>
-      {lineage
-        .slice()
-        .reverse()
-        .map((node, i) => {
-          const isLast = i === lineage.length - 1;
+    <Flex direction={"column"} h={"100%"}>
+      <Box flexGrow={1}>
+        {lineage
+          .slice()
+          .reverse()
+          .map((node, i) => {
+            const isLast = i === lineage.length - 1;
+            const data = node.data;
 
-          const data = node.data;
-
-          return (
-            <Row
-              mb={2}
-              p={3}
-              mainAxisAlignment="flex-start"
-              crossAxisAlignment="flex-start"
-              borderRadius="6px"
-              borderLeftWidth={isLast ? "4px" : "0px"}
-              _hover={{
-                boxShadow: isLast ? "none" : "0 0 0 0.5px #1a192b",
-              }}
-              borderColor={getFluxNodeTypeDarkColor(data.fluxNodeType)}
-              position="relative"
-              onMouseEnter={() => setHoveredNodeId(node.id)}
-              onMouseLeave={() => setHoveredNodeId(null)}
-              bg={getFluxNodeTypeColor(data.fluxNodeType)}
-              key={node.id}
-              onClick={() => {
-                const selection = window.getSelection();
-
-                // We don't want to trigger the selection
-                // if they're just selecting/copying text.
-                if (selection?.isCollapsed) {
-                  if (isLast) {
-                    if (data.streamId) {
-                      stopGenerating();
-                      setIsEditing(true);
-                    } else if (!isEditing) setIsEditing(true);
-                  } else {
-                    // TODO: Note this is basically broken because of codeblocks.
-                    textOffsetRef.current = selection.anchorOffset ?? 0;
-
-                    selectNode(node.id);
-                    setIsEditing(true);
-                  }
-                }
-              }}
-              cursor={isLast && isEditing ? "text" : "pointer"}
-            >
-              {data.streamId && data.text === "" ? (
-                <Center expand>
-                  <Spinner />
-                </Center>
-              ) : (
-                <>
-                  <Button
-                    display={
-                      hoveredNodeId === promptNode.id && promptNode.id === node.id
-                        ? "block"
-                        : "none"
-                    }
-                    onClick={() =>
-                      data.streamId ? stopGenerating() : setIsEditing(!isEditing)
-                    }
-                    position="absolute"
-                    top={1}
-                    right={1}
-                    zIndex={10}
-                    variant="outline"
-                    border="0px"
-                    p={1}
-                    _hover={{ background: "none" }}
-                  >
-                    {data.streamId ? (
-                      <NotAllowedIcon boxSize={4} />
-                    ) : isEditing ? (
-                      <ViewIcon boxSize={4} />
-                    ) : (
-                      <EditIcon boxSize={4} />
-                    )}
-                  </Button>
-                  <Text fontWeight="bold" width="auto" whiteSpace="nowrap">
-                    {displayNameFromFluxNodeType(data.fluxNodeType)}
-                    :&nbsp;
-                  </Text>
-                  <Column
-                    width="100%"
-                    marginRight="30px"
-                    whiteSpace="pre-wrap" // Preserve newlines.
+            if (
+              node.data.fluxNodeType === FluxNodeType.System &&
+              node.id === selectedNodeId
+            ) {
+              return (
+                <Box display="flex" flexDirection="column" alignItems="center">
+                  <Row
+                    mb={2}
+                    p={3}
                     mainAxisAlignment="flex-start"
                     crossAxisAlignment="flex-start"
-                    borderRadius="6px"
-                    wordBreak="break-word"
-                    minHeight={
-                      data.fluxNodeType === FluxNodeType.User && isLast && isEditing
-                        ? "75px"
-                        : "0px"
-                    }
+                    borderRadius="25px"
+                    _hover={{
+                      boxShadow: isLast ? "none" : "0 0 0 0.5px #1a192b",
+                    }}
+                    padding={"20px"}
+                    width={"80%"}
+                    borderColor={getFluxNodeTypeDarkColor(data.fluxNodeType)}
+                    position="relative"
+                    onMouseEnter={() => setHoveredNodeId(node.id)}
+                    onMouseLeave={() => setHoveredNodeId(null)}
+                    bg={getFluxNodeTypeColor(data.fluxNodeType)}
+                    key={node.id}
+                    onClick={() => {
+                      const selection = window.getSelection();
+
+                      // We don't want to trigger the selection
+                      // if they're just selecting/copying text.
+                      if (selection?.isCollapsed) {
+                        if (isLast) {
+                          if (data.streamId) {
+                            stopGenerating();
+                            setIsEditing(true);
+                          } else if (!isEditing) setIsEditing(true);
+                        } else {
+                          // TODO: Note this is basically broken because of codeblocks.
+                          textOffsetRef.current = selection.anchorOffset ?? 0;
+
+                          selectNode(node.id);
+                          setIsEditing(true);
+                        }
+                      }
+                    }}
+                    cursor={isLast && isEditing ? "text" : "pointer"}
                   >
-                    {isLast && isEditing ? (
-                      <>
-                        <TextareaAutosize
-                          id="promptBox"
-                          style={{
-                            width: "100%",
-                            backgroundColor: "transparent",
-                            outline: "none",
-                          }}
-                          minRows={data.fluxNodeType === FluxNodeType.User ? 3 : 1}
-                          value={data.text ?? ""}
-                          onChange={(e) => onType(e.target.value)}
-                          placeholder={
-                            data.fluxNodeType === FluxNodeType.User
-                              ? "Write a poem about..."
-                              : data.fluxNodeType === FluxNodeType.System
-                              ? "You are ChatGPT..."
-                              : undefined
-                          }
-                        />
-                        {data.fluxNodeType === FluxNodeType.User && (
-                          <Whisper
-                            onConvertedText={(text: string) =>
-                              onType(`${data.text}${data.text ? " " : ""}${text}`)
-                            }
-                            apiKey={apiKey}
-                          />
+                    <>
+                      <Button
+                        display={
+                          hoveredNodeId === promptNode.id && promptNode.id === node.id
+                            ? "block"
+                            : "none"
+                        }
+                        onClick={() =>
+                          data.streamId ? stopGenerating() : setIsEditing(!isEditing)
+                        }
+                        position="absolute"
+                        top={1}
+                        right={1}
+                        zIndex={10}
+                        variant="outline"
+                        border="0px"
+                        p={1}
+                        _hover={{ background: "none" }}
+                      >
+                        {data.streamId ? (
+                          <NotAllowedIcon boxSize={4} />
+                        ) : isEditing ? (
+                          <ViewIcon boxSize={4} />
+                        ) : (
+                          <EditIcon boxSize={4} />
                         )}
-                      </>
-                    ) : (
-                      <Markdown text={data.text} />
-                    )}
-                  </Column>
-                </>
-              )}
-            </Row>
-          );
-        })}
+                      </Button>
+                      <Column
+                        width="100%"
+                        marginRight="30px"
+                        whiteSpace="pre-wrap" // Preserve newlines.
+                        mainAxisAlignment="flex-start"
+                        crossAxisAlignment="flex-start"
+                        borderRadius="6px"
+                        wordBreak="break-word"
+                        minHeight={
+                          data.fluxNodeType === FluxNodeType.User && isLast && isEditing
+                            ? "75px"
+                            : "0px"
+                        }
+                      >
+                        {isLast && isEditing ? (
+                          <>
+                            <TextareaAutosize
+                              id="promptBox"
+                              style={{
+                                width: "100%",
+                                backgroundColor: "transparent",
+                                outline: "none",
+                              }}
+                              minRows={data.fluxNodeType === FluxNodeType.User ? 3 : 1}
+                              value={data.text ?? ""}
+                              onChange={(e) => onType(e.target.value)}
+                              placeholder={
+                                data.fluxNodeType === FluxNodeType.User
+                                  ? "Write a poem about..."
+                                  : data.fluxNodeType === FluxNodeType.System
+                                  ? "You are ChatGPT..."
+                                  : undefined
+                              }
+                            />
+                            {data.fluxNodeType === FluxNodeType.User && (
+                              <Whisper
+                                onConvertedText={(text: string) =>
+                                  onType(`${data.text}${data.text ? " " : ""}${text}`)
+                                }
+                                apiKey={apiKey}
+                              />
+                            )}
+                          </>
+                        ) : (
+                          <Markdown text={data.text} />
+                        )}
+                      </Column>
+                    </>
+                  </Row>
+                </Box>
+              );
+            } else if (node.data.fluxNodeType === FluxNodeType.System) {
+              return;
+            }
 
-      <Row
-        mainAxisAlignment="center"
-        crossAxisAlignment="stretch"
-        width="100%"
-        height="100px"
-        id="promptButtons"
-      >
-        <BigButton
-          tooltip={
-            promptNodeType === FluxNodeType.User
-              ? `${modifierKeyText}⏎`
-              : `${modifierKeyText}P`
-          }
-          onClick={onMainButtonClick}
-          color={getFluxNodeTypeDarkColor(promptNodeType)}
+            return (
+              <Box
+                display="flex"
+                flexDirection="column"
+                alignItems={
+                  data.fluxNodeType === FluxNodeType.User ? "flex-start" : "flex-end"
+                }
+              >
+                <Row
+                  mb={2}
+                  p={3}
+                  mainAxisAlignment="flex-start"
+                  crossAxisAlignment="flex-start"
+                  borderRadius="25px"
+                  _hover={{
+                    boxShadow: isLast ? "none" : "0 0 0 0.5px #1a192b",
+                  }}
+                  padding={"20px"}
+                  width={"auto"}
+                  minWidth={"40%"}
+                  maxWidth={"70%"}
+                  borderColor={getFluxNodeTypeDarkColor(data.fluxNodeType)}
+                  position="relative"
+                  justifyContent={
+                    data.fluxNodeType == FluxNodeType.GPT ? "left" : "right"
+                  }
+                  onMouseEnter={() => setHoveredNodeId(node.id)}
+                  onMouseLeave={() => setHoveredNodeId(null)}
+                  bg={getFluxNodeTypeColor(data.fluxNodeType)}
+                  key={node.id}
+                  onClick={() => {
+                    const selection = window.getSelection();
+
+                    // We don't want to trigger the selection
+                    // if they're just selecting/copying text.
+                    if (selection?.isCollapsed) {
+                      if (isLast) {
+                        if (data.streamId) {
+                          stopGenerating();
+                          setIsEditing(true);
+                        } else if (!isEditing) setIsEditing(true);
+                      } else {
+                        // TODO: Note this is basically broken because of codeblocks.
+                        textOffsetRef.current = selection.anchorOffset ?? 0;
+
+                        selectNode(node.id);
+                        setIsEditing(true);
+                      }
+                    }
+                  }}
+                  cursor={isLast && isEditing ? "text" : "pointer"}
+                >
+                  <>
+                    <Button
+                      display={
+                        hoveredNodeId === promptNode.id && promptNode.id === node.id
+                          ? "block"
+                          : "none"
+                      }
+                      onClick={() =>
+                        data.streamId ? stopGenerating() : setIsEditing(!isEditing)
+                      }
+                      position="absolute"
+                      top={1}
+                      right={1}
+                      zIndex={10}
+                      variant="outline"
+                      border="0px"
+                      p={1}
+                      _hover={{ background: "none" }}
+                    >
+                      {data.streamId ? (
+                        <NotAllowedIcon boxSize={4} />
+                      ) : isEditing ? (
+                        <ViewIcon boxSize={4} />
+                      ) : (
+                        <EditIcon boxSize={4} />
+                      )}
+                    </Button>
+                    <Column
+                      width="100%"
+                      marginRight="30px"
+                      whiteSpace="pre-wrap" // Preserve newlines.
+                      mainAxisAlignment="flex-start"
+                      crossAxisAlignment="flex-start"
+                      borderRadius="6px"
+                      wordBreak="break-word"
+                      minHeight={
+                        data.fluxNodeType === FluxNodeType.User && isLast && isEditing
+                          ? "75px"
+                          : "0px"
+                      }
+                    >
+                      {isLast && isEditing ? (
+                        <>
+                          <TextareaAutosize
+                            id="promptBox"
+                            style={{
+                              width: "100%",
+                              backgroundColor: "transparent",
+                              outline: "none",
+                            }}
+                            minRows={data.fluxNodeType === FluxNodeType.User ? 3 : 1}
+                            value={data.text ?? ""}
+                            onChange={(e) => onType(e.target.value)}
+                            placeholder={
+                              data.fluxNodeType === FluxNodeType.User
+                                ? "Write a poem about..."
+                                : data.fluxNodeType === FluxNodeType.System
+                                ? "You are ChatGPT..."
+                                : undefined
+                            }
+                          />
+                          {data.fluxNodeType === FluxNodeType.User && (
+                            <Whisper
+                              onConvertedText={(text: string) =>
+                                onType(`${data.text}${data.text ? " " : ""}${text}`)
+                              }
+                              apiKey={apiKey}
+                            />
+                          )}
+                        </>
+                      ) : (
+                        <Markdown text={data.text} />
+                      )}
+                    </Column>
+                  </>
+                </Row>
+              </Box>
+            );
+          })}
+      </Box>
+      <Box flexGrow={1}></Box>
+      <Box flexGrow={0}>
+        {/* Display clickable buttons for 4 different models */}
+        <Row
+          mainAxisAlignment="center"
+          crossAxisAlignment="stretch"
           width="100%"
-          height="100%"
-          fontSize="lg"
+          height="60px"
+          id="promptButtons"
         >
-          {promptNodeType === FluxNodeType.User ? "Generate" : "Compose"}
-          <Text fontWeight="extrabold">
-            &nbsp;
+          <BigButton
+            tooltip={
+              promptNodeType === FluxNodeType.User
+                ? `${modifierKeyText}⏎`
+                : `${modifierKeyText}P`
+            }
+            onClick={onMainButtonClick}
+            color={getFluxNodeTypeDarkColor(FluxNodeType.GPT)}
+            width="100%"
+            height="100%"
+            fontSize="lg"
+            maxWidth={"600px"}
+          >
             {promptNodeType === FluxNodeType.User
-              ? displayNameFromFluxNodeType(FluxNodeType.GPT, isGPT4)
-              : displayNameFromFluxNodeType(FluxNodeType.User, isGPT4)}
-            &nbsp;
-          </Text>
-          response
-        </BigButton>
-      </Row>
-
-      {promptNodeType === FluxNodeType.User ? (
-        <>
-          <LabeledSlider
-            mt={3}
-            label="Temperature (randomness)"
-            value={settings.temp}
-            setValue={(v: number) => {
-              setSettings({ ...settings, temp: v });
-
-              if (MIXPANEL_TOKEN) mixpanel.track("Changed temperature inline");
-            }}
-            color={getFluxNodeTypeDarkColor(FluxNodeType.User)}
-            max={1.25}
-            min={0}
-            step={0.01}
-          />
-
-          <LabeledSlider
-            mt={3}
-            label="Number of Responses"
-            value={settings.n}
-            setValue={(v: number) => {
-              setSettings({ ...settings, n: v });
-
-              if (MIXPANEL_TOKEN) mixpanel.track("Changed number of responses inline");
-            }}
-            color={getFluxNodeTypeDarkColor(FluxNodeType.User)}
-            max={10}
-            min={1}
-            step={1}
-          />
-        </>
-      ) : null}
-    </>
+              ? "Generate Response"
+              : "Compose Prompt"}
+          </BigButton>
+        </Row>
+      </Box>
+    </Flex>
   );
 }

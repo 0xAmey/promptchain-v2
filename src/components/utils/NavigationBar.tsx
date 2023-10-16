@@ -18,10 +18,6 @@ import { Row } from "../../utils/chakra";
 import { FluxNodeType } from "../../utils/types";
 import { getPlatformModifierKeyText } from "../../utils/platform";
 
-import dave from "/dave.jpg";
-import t11s from "/t11s.jpg";
-import paradigm from "/paradigm.svg";
-
 export function NavigationBar({
   newUserNodeLinkedToANewSystemNode,
   newConnectedToSelectedNode,
@@ -76,38 +72,8 @@ export function NavigationBar({
         width="auto"
       >
         <Text whiteSpace="nowrap">
-          <b>Flux</b> by
+          <b>Promptchain</b>
         </Text>
-
-        <AvatarGroup ml="4px" size="sm">
-          <Avatar
-            bg="#ADADAD"
-            color="transparent"
-            name="Transmissions11"
-            src={t11s}
-            as={Link}
-            isExternal
-            href="https://twitter.com/transmissions11"
-          />
-          <Avatar
-            bg="#6B2E80"
-            color="transparent"
-            name="Dave White"
-            src={dave}
-            as={Link}
-            isExternal
-            href="https://twitter.com/_Dave__White_"
-          />
-          <Avatar
-            bg="white"
-            color="transparent"
-            name="Paradigm"
-            src={paradigm}
-            as={Link}
-            isExternal
-            href="https://twitter.com/paradigm"
-          />
-        </AvatarGroup>
 
         <Box mx="20px" height="100%" width="1px" bg="#EEEEEE" />
 
@@ -117,7 +83,7 @@ export function NavigationBar({
             rightIcon={<ChevronDownIcon />}
             variant="ghost"
             height="80%"
-            px="5px"
+            px="15px"
           >
             File
           </MenuButton>
@@ -172,7 +138,7 @@ export function NavigationBar({
             rightIcon={<ChevronDownIcon />}
             variant="ghost"
             height="80%"
-            px="5px"
+            px="15px"
             ml="11px"
           >
             Edit
@@ -226,7 +192,7 @@ export function NavigationBar({
             rightIcon={<ChevronDownIcon />}
             variant="ghost"
             height="80%"
-            px="5px"
+            px="15px"
             ml="11px"
           >
             Navigate
@@ -264,21 +230,11 @@ export function NavigationBar({
         <Button
           variant="ghost"
           height="80%"
-          px="5px"
+          px="15px"
           ml="11px"
           onClick={onOpenSettingsModal}
         >
           Settings
-        </Button>
-        <Button
-          variant="ghost"
-          height="80%"
-          px="5px"
-          ml="16px"
-          as="a"
-          href="https://twitter.com/transmissions11/status/1640775967856803840"
-        >
-          About
         </Button>
       </Row>
     </Row>

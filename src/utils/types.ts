@@ -10,6 +10,7 @@ export type FluxNodeData = {
   hasCustomlabel?: boolean;
 };
 
+// have multiple models here
 export enum FluxNodeType {
   System = "System",
   User = "User",

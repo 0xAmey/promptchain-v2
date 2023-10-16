@@ -75,24 +75,6 @@ export function LabelUpdaterNode({
             size="xs"
             // px={6}
           />
-
-          {/* <Row
-          mainAxisAlignment="center"
-          crossAxisAlignment="center"
-          position="absolute"
-          top={0}
-          right="14px"
-          height="100%"
-          zIndex={1}
-        >
-          <CloseIcon
-            rounded="sm"
-            p={1}
-            cursor="pointer"
-            _hover={{ backgroundColor: "none" }}
-            onClick={cancel}
-          />
-        </Row> */}
         </Row>
 
         <Handle type="source" position={Position.Bottom} isConnectable={isConnectable} />
