@@ -120,150 +120,32 @@ export function Prompt({
   const modifierKeyText = getPlatformModifierKeyText();
 
   return (
-    <Flex direction={"column"} h={"100%"}>
-      <Box flexGrow={1}>
-        {lineage
-          .slice()
-          .reverse()
-          .map((node, i) => {
-            const isLast = i === lineage.length - 1;
-            const data = node.data;
+    <Box
+      position={"relative"}
+      paddingLeft={"15px"}
+      paddingRight={"15px"}
+      paddingBottom={"50px"}
+    >
+      <ButtonGrid
+        selectedModels={selectedModels}
+        activeModels={activeModels}
+        setActiveModels={setActiveModels}
+      />
 
-            if (
-              node.data.fluxNodeType === FluxNodeType.System &&
-              node.id === selectedNodeId
-            ) {
-              return (
-                <Box display="flex" flexDirection="column" alignItems="center">
-                  <Row
-                    mb={2}
-                    p={3}
-                    mainAxisAlignment="flex-start"
-                    crossAxisAlignment="flex-start"
-                    borderRadius="25px"
-                    _hover={{
-                      boxShadow: isLast ? "none" : "0 0 0 0.5px #1a192b",
-                    }}
-                    padding={"20px"}
-                    width={"80%"}
-                    borderColor={getFluxNodeTypeDarkColor(data.fluxNodeType)}
-                    position="relative"
-                    onMouseEnter={() => setHoveredNodeId(node.id)}
-                    onMouseLeave={() => setHoveredNodeId(null)}
-                    bg={getFluxNodeTypeColor(data.fluxNodeType)}
-                    key={node.id}
-                    onClick={() => {
-                      const selection = window.getSelection();
+      {/* Display clickable buttons for 4 different models */}
+      {lineage
+        .slice()
+        .reverse()
+        .map((node, i) => {
+          const isLast = i === lineage.length - 1;
+          const data = node.data;
 
-                      // We don't want to trigger the selection
-                      // if they're just selecting/copying text.
-                      if (selection?.isCollapsed) {
-                        if (isLast) {
-                          if (data.streamId) {
-                            stopGenerating();
-                            setIsEditing(true);
-                          } else if (!isEditing) setIsEditing(true);
-                        } else {
-                          // TODO: Note this is basically broken because of codeblocks.
-                          textOffsetRef.current = selection.anchorOffset ?? 0;
-
-                          selectNode(node.id);
-                          setIsEditing(true);
-                        }
-                      }
-                    }}
-                    cursor={isLast && isEditing ? "text" : "pointer"}
-                  >
-                    <>
-                      <Button
-                        display={
-                          hoveredNodeId === promptNode.id && promptNode.id === node.id
-                            ? "block"
-                            : "none"
-                        }
-                        onClick={() =>
-                          data.streamId ? stopGenerating() : setIsEditing(!isEditing)
-                        }
-                        position="absolute"
-                        top={1}
-                        right={1}
-                        zIndex={10}
-                        variant="outline"
-                        border="0px"
-                        p={1}
-                        _hover={{ background: "none" }}
-                      >
-                        {data.streamId ? (
-                          <NotAllowedIcon boxSize={4} />
-                        ) : isEditing ? (
-                          <ViewIcon boxSize={4} />
-                        ) : (
-                          <EditIcon boxSize={4} />
-                        )}
-                      </Button>
-                      <Column
-                        width="100%"
-                        marginRight="30px"
-                        whiteSpace="pre-wrap" // Preserve newlines.
-                        mainAxisAlignment="flex-start"
-                        crossAxisAlignment="flex-start"
-                        borderRadius="6px"
-                        wordBreak="break-word"
-                        minHeight={
-                          data.fluxNodeType === FluxNodeType.User && isLast && isEditing
-                            ? "75px"
-                            : "0px"
-                        }
-                      >
-                        {isLast && isEditing ? (
-                          <>
-                            <TextareaAutosize
-                              id="promptBox"
-                              style={{
-                                width: "100%",
-                                backgroundColor: "transparent",
-                                outline: "none",
-                              }}
-                              minRows={data.fluxNodeType === FluxNodeType.User ? 3 : 1}
-                              value={data.text ?? ""}
-                              onChange={(e) => onType(e.target.value)}
-                              placeholder={
-                                data.fluxNodeType === FluxNodeType.User
-                                  ? "Write a poem about..."
-                                  : data.fluxNodeType === FluxNodeType.System
-                                  ? "You are ChatGPT..."
-                                  : undefined
-                              }
-                            />
-                            {data.fluxNodeType === FluxNodeType.User && (
-                              <Whisper
-                                onConvertedText={(text: string) =>
-                                  onType(`${data.text}${data.text ? " " : ""}${text}`)
-                                }
-                                apiKey={apiKey}
-                              />
-                            )}
-                          </>
-                        ) : (
-                          <Markdown text={data.text} />
-                        )}
-                      </Column>
-                    </>
-                  </Row>
-                </Box>
-              );
-            } else if (node.data.fluxNodeType === FluxNodeType.System) {
-              return;
-            }
-
+          if (
+            node.data.fluxNodeType === FluxNodeType.System &&
+            node.id === selectedNodeId
+          ) {
             return (
-              <Box
-                display="flex"
-                flexDirection="column"
-                alignItems={
-                  data.fluxNodeType === FluxNodeType.User ? "flex-start" : "flex-end"
-                }
-              >
+              <Box display="flex" flexDirection="column" alignItems="center">
                 <Row
                   mb={2}
                   p={3}
@@ -274,14 +156,9 @@ export function Prompt({
                     boxShadow: isLast ? "none" : "0 0 0 0.5px #1a192b",
                   }}
                   padding={"20px"}
-                  width={"auto"}
-                  minWidth={"40%"}
-                  maxWidth={"70%"}
+                  width={"80%"}
                   borderColor={getFluxNodeTypeDarkColor(data.fluxNodeType)}
                   position="relative"
-                  justifyContent={
-                    data.fluxNodeType == FluxNodeType.Model ? "left" : "right"
-                  }
                   onMouseEnter={() => setHoveredNodeId(node.id)}
                   onMouseLeave={() => setHoveredNodeId(null)}
                   bg={getFluxNodeTypeColor(data.fluxNodeType)}
@@ -343,11 +220,6 @@ export function Prompt({
                       crossAxisAlignment="flex-start"
                       borderRadius="6px"
                       wordBreak="break-word"
-                      minHeight={
-                        data.fluxNodeType === FluxNodeType.User && isLast && isEditing
-                          ? "75px"
-                          : "0px"
-                      }
                     >
                       {isLast && isEditing ? (
                         <>
@@ -358,7 +230,6 @@ export function Prompt({
                               backgroundColor: "transparent",
                               outline: "none",
                             }}
-                            minRows={data.fluxNodeType === FluxNodeType.User ? 3 : 1}
                             value={data.text ?? ""}
                             onChange={(e) => onType(e.target.value)}
                             placeholder={
@@ -386,38 +257,141 @@ export function Prompt({
                 </Row>
               </Box>
             );
-          })}
-      </Box>
-      <Box flexGrow={1}></Box>
-      <Box flexGrow={0}>
-        {/* Display clickable buttons for 4 different models */}
-        <ButtonGrid
-          selectedModels={selectedModels}
-          activeModels={activeModels}
-          setActiveModels={setActiveModels}
-        />
-        <Row
-          mainAxisAlignment="center"
-          crossAxisAlignment="stretch"
-          width="100%"
-          height="60px"
-          id="promptButtons"
-        >
-          <BigButton
-            tooltip={`${modifierKeyText}⏎`}
-            onClick={onMainButtonClick}
-            color={getFluxNodeTypeDarkColor(FluxNodeType.Model)}
-            width="100%"
-            height="100%"
-            fontSize="lg"
-            maxWidth={"600px"}
-          >
-            {promptNodeType === FluxNodeType.User
-              ? "Generate Response"
-              : "Compose Prompt"}
-          </BigButton>
-        </Row>
-      </Box>
-    </Flex>
+          } else if (node.data.fluxNodeType === FluxNodeType.System) {
+            return;
+          }
+
+          return (
+            <Box
+              display="flex"
+              flexDirection="column"
+              alignItems={
+                data.fluxNodeType === FluxNodeType.User ? "flex-start" : "flex-end"
+              }
+            >
+              <Row
+                mb={2}
+                p={3}
+                mainAxisAlignment="flex-start"
+                crossAxisAlignment="flex-start"
+                borderRadius="25px"
+                _hover={{
+                  boxShadow: isLast ? "none" : "0 0 0 0.5px #1a192b",
+                }}
+                padding={"20px"}
+                width={"100%"}
+                minWidth={"40%"}
+                maxWidth={"70%"}
+                borderColor={getFluxNodeTypeDarkColor(data.fluxNodeType)}
+                position="relative"
+                justifyContent={
+                  data.fluxNodeType == FluxNodeType.Model ? "left" : "right"
+                }
+                onMouseEnter={() => setHoveredNodeId(node.id)}
+                onMouseLeave={() => setHoveredNodeId(null)}
+                bg={getFluxNodeTypeColor(data.fluxNodeType)}
+                key={node.id}
+                onClick={() => {
+                  const selection = window.getSelection();
+
+                  // We don't want to trigger the selection
+                  // if they're just selecting/copying text.
+                  if (selection?.isCollapsed) {
+                    if (isLast) {
+                      if (data.streamId) {
+                        stopGenerating();
+                        setIsEditing(true);
+                      } else if (!isEditing) setIsEditing(true);
+                    } else {
+                      // TODO: Note this is basically broken because of codeblocks.
+                      textOffsetRef.current = selection.anchorOffset ?? 0;
+
+                      selectNode(node.id);
+                      setIsEditing(true);
+                    }
+                  }
+                }}
+                cursor={isLast && isEditing ? "text" : "pointer"}
+              >
+                <>
+                  <Button
+                    display={
+                      hoveredNodeId === promptNode.id && promptNode.id === node.id
+                        ? "block"
+                        : "none"
+                    }
+                    onClick={() =>
+                      data.streamId ? stopGenerating() : setIsEditing(!isEditing)
+                    }
+                    position="absolute"
+                    top={1}
+                    right={1}
+                    zIndex={10}
+                    variant="outline"
+                    border="0px"
+                    p={1}
+                    _hover={{ background: "none" }}
+                  >
+                    {data.streamId ? (
+                      <NotAllowedIcon boxSize={4} />
+                    ) : isEditing ? (
+                      <ViewIcon boxSize={4} />
+                    ) : (
+                      <EditIcon boxSize={4} />
+                    )}
+                  </Button>
+                  <Column
+                    width="100%"
+                    marginRight="30px"
+                    whiteSpace="pre-wrap" // Preserve newlines.
+                    mainAxisAlignment="flex-start"
+                    crossAxisAlignment="flex-start"
+                    borderRadius="6px"
+                    wordBreak="break-word"
+                    minHeight={
+                      data.fluxNodeType === FluxNodeType.User && isLast && isEditing
+                        ? "75px"
+                        : "0px"
+                    }
+                  >
+                    {isLast && isEditing ? (
+                      <>
+                        <TextareaAutosize
+                          id="promptBox"
+                          style={{
+                            width: "100%",
+                            backgroundColor: "transparent",
+                            outline: "none",
+                          }}
+                          minRows={data.fluxNodeType === FluxNodeType.User ? 3 : 1}
+                          value={data.text ?? ""}
+                          onChange={(e) => onType(e.target.value)}
+                          placeholder={
+                            data.fluxNodeType === FluxNodeType.User
+                              ? "Write a poem about..."
+                              : data.fluxNodeType === FluxNodeType.System
+                              ? "You are ChatGPT..."
+                              : undefined
+                          }
+                        />
+                        {data.fluxNodeType === FluxNodeType.User && (
+                          <Whisper
+                            onConvertedText={(text: string) =>
+                              onType(`${data.text}${data.text ? " " : ""}${text}`)
+                            }
+                            apiKey={apiKey}
+                          />
+                        )}
+                      </>
+                    ) : (
+                      <Markdown text={data.text} />
+                    )}
+                  </Column>
+                </>
+              </Row>
+            </Box>
+          );
+        })}
+    </Box>
   );
 }

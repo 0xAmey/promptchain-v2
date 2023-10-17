@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, Flex } from "@chakra-ui/react";
+import { Box, Button, Flex } from "@chakra-ui/react";
 
 const ButtonGrid = ({
   selectedModels,
@@ -19,7 +19,17 @@ const ButtonGrid = ({
   };
 
   return (
-    <>
+    <Box
+      position={"sticky"}
+      top={0}
+      // left="50%"
+      // transform="translateX(-50%)"
+      minWidth={"100%"}
+      paddingTop={"20px"}
+      paddingBottom={"10px"}
+      zIndex={"sticky"}
+      backgroundColor={"white"}
+    >
       {chunk(selectedModels, 4).map((group, index) => (
         <Flex key={index} justifyContent="center" mb={4}>
           {group.map((text) => (
@@ -38,7 +48,7 @@ const ButtonGrid = ({
           ))}
         </Flex>
       ))}
-    </>
+    </Box>
   );
 };
 

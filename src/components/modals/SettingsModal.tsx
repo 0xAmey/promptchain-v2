@@ -35,6 +35,7 @@ export const SettingsModal = memo(function SettingsModal({
   availableModels,
   selectedModels,
   setSelectedModels,
+  setActiveModels,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -47,6 +48,7 @@ export const SettingsModal = memo(function SettingsModal({
   availableModels: string[] | null;
   selectedModels: string[];
   setSelectedModels: (selectedModels: string[]) => void;
+  setActiveModels: React.Dispatch<React.SetStateAction<string[]>>;
 }) {
   const reset = () => {
     if (
@@ -92,6 +94,7 @@ export const SettingsModal = memo(function SettingsModal({
           {/* CHECKBOX DROPDOWN */}
 
           <ModalCheckboxDropdown
+            setActiveModels={setActiveModels}
             availableModels={availableModels}
             selectedModels={selectedModels}
             setSelectedModels={setSelectedModels}

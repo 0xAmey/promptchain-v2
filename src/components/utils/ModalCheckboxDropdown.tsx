@@ -14,10 +14,12 @@ import { ChevronDownIcon, ChevronUpIcon } from "@chakra-ui/icons";
 export default function ModalCheckboxDropdown({
   availableModels,
   selectedModels,
+  setActiveModels,
   setSelectedModels,
 }: {
   availableModels: string[];
   selectedModels: string[];
+  setActiveModels: React.Dispatch<React.SetStateAction<string[]>>;
   setSelectedModels: React.Dispatch<React.SetStateAction<string[]>>;
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -27,6 +29,7 @@ export default function ModalCheckboxDropdown({
   };
 
   const handleCheckboxChange = (value: string) => {
+    setActiveModels((prev) => prev.filter((item) => item != value));
     setSelectedModels((prev) => {
       if (prev.includes(value)) {
         return prev.filter((item: string) => item !== value);

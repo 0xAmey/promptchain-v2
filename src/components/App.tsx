@@ -326,11 +326,6 @@ function App() {
 
     let firstCompletionId: string | undefined;
 
-    setActiveModels((prev) => {
-      const lmeow = prev.filter((meow) => !selectedModels.includes(meow));
-      return lmeow;
-    });
-
     const responses = activeModels.length;
 
     for (let i = 0; i < responses; i++) {
@@ -994,6 +989,7 @@ function App() {
         availableModels={availableModels}
         selectedModels={selectedModels}
         setSelectedModels={setSelectedModels}
+        setActiveModels={setActiveModels}
       />
       <Column
         mainAxisAlignment="center"
@@ -1112,7 +1108,7 @@ function App() {
             </Column>
           </Resizable>
 
-          <Box height="100%" width="100%" overflowY="scroll" p={4}>
+          <Box height="100%" width="100%" overflowY="scroll">
             {selectedNodeLineage.length >= 1 ? (
               <Prompt
                 selectedModels={selectedModels}
