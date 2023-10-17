@@ -1,7 +1,7 @@
 import { MIXPANEL_TOKEN } from "../main";
 import { Row, Center, Column } from "../utils/chakra";
 import { getFluxNodeTypeColor, getFluxNodeTypeDarkColor } from "../utils/color";
-import { displayNameFromFluxNodeType, setFluxNodeStreamId } from "../utils/fluxNode";
+import { setFluxNodeStreamId } from "../utils/fluxNode";
 import { FluxNodeData, FluxNodeType, Settings } from "../utils/types";
 import { BigButton } from "./utils/BigButton";
 import { LabeledSlider } from "./utils/LabeledInputs";
@@ -280,7 +280,7 @@ export function Prompt({
                   borderColor={getFluxNodeTypeDarkColor(data.fluxNodeType)}
                   position="relative"
                   justifyContent={
-                    data.fluxNodeType == FluxNodeType.GPT ? "left" : "right"
+                    data.fluxNodeType == FluxNodeType.Model ? "left" : "right"
                   }
                   onMouseEnter={() => setHoveredNodeId(node.id)}
                   onMouseLeave={() => setHoveredNodeId(null)}
@@ -404,13 +404,9 @@ export function Prompt({
           id="promptButtons"
         >
           <BigButton
-            tooltip={
-              promptNodeType === FluxNodeType.User
-                ? `${modifierKeyText}⏎`
-                : `${modifierKeyText}P`
-            }
+            tooltip={`${modifierKeyText}⏎`}
             onClick={onMainButtonClick}
-            color={getFluxNodeTypeDarkColor(FluxNodeType.GPT)}
+            color={getFluxNodeTypeDarkColor(FluxNodeType.Model)}
             width="100%"
             height="100%"
             fontSize="lg"

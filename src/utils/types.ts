@@ -14,8 +14,8 @@ export type FluxNodeData = {
 export enum FluxNodeType {
   System = "System",
   User = "User",
-  GPT = "GPT",
-  TweakedGPT = "GPT (tweaked)",
+  Model = "Model",
+  TweakedModel = "Model (tweaked)",
 }
 
 export type Settings = {

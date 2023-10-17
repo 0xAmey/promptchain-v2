@@ -141,13 +141,13 @@ export function modifyFluxNodeText(
 
     // If the node's fluxNodeType is GPT and we're changing
     // it as a human then its type becomes GPT + Human.
-    if (asHuman && copy.data.fluxNodeType === FluxNodeType.GPT) {
+    if (asHuman && copy.data.fluxNodeType === FluxNodeType.Model) {
       copy.style = {
         ...copy.style,
-        background: getFluxNodeTypeColor(FluxNodeType.TweakedGPT),
+        background: getFluxNodeTypeColor(FluxNodeType.TweakedModel),
       };
 
-      copy.data.fluxNodeType = FluxNodeType.TweakedGPT;
+      copy.data.fluxNodeType = FluxNodeType.TweakedModel;
     }
 
     // Generate auto label based on prompt text, and preserve custom label
@@ -263,8 +263,8 @@ export function getFluxNodeGPTChildren(
 ): Node<FluxNodeData>[] {
   return existingNodes.filter(
     (node) =>
-      (node.data.fluxNodeType === FluxNodeType.GPT ||
-        node.data.fluxNodeType === FluxNodeType.TweakedGPT) &&
+      (node.data.fluxNodeType === FluxNodeType.Model ||
+        node.data.fluxNodeType === FluxNodeType.TweakedModel) &&
       getFluxNodeParent(existingNodes, existingEdges, node.id)?.id === id
   );
 }
@@ -375,10 +375,10 @@ export function displayNameFromFluxNodeType(
   switch (fluxNodeType) {
     case FluxNodeType.User:
       return "User";
-    case FluxNodeType.GPT:
-      return isGPT4 === undefined ? "GPT" : isGPT4 ? "GPT-4" : "GPT-3.5";
-    case FluxNodeType.TweakedGPT:
-      return displayNameFromFluxNodeType(FluxNodeType.GPT, isGPT4) + " (edited)";
+    case FluxNodeType.Model:
+      return "Model";
+    case FluxNodeType.TweakedModel:
+      return displayNameFromFluxNodeType(FluxNodeType.TweakedModel, isGPT4) + " (edited)";
     case FluxNodeType.System:
       return "System";
   }

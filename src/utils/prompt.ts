@@ -86,8 +86,8 @@ export function messagesFromLineage(
         content: node.data.text,
       });
     } else if (
-      node.data.fluxNodeType === FluxNodeType.TweakedGPT ||
-      node.data.fluxNodeType === FluxNodeType.GPT
+      node.data.fluxNodeType === FluxNodeType.TweakedModel ||
+      node.data.fluxNodeType === FluxNodeType.Model
     ) {
       messages.push({
         role: "assistant",

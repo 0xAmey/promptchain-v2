@@ -26,7 +26,6 @@ import { newFluxEdge, modifyFluxEdge, addFluxEdge } from "../utils/fluxEdge";
 import {
   getFluxNode,
   getFluxNodeGPTChildren,
-  displayNameFromFluxNodeType,
   newFluxNode,
   appendTextToFluxNodeAsGPT,
   getFluxNodeLineage,
@@ -47,12 +46,7 @@ import { useLocalStorage } from "../utils/lstore";
 import { mod } from "../utils/mod";
 import { getAvailableOpenAiChatModels } from "../utils/models";
 import { generateNodeId, generateStreamId } from "../utils/nodeId";
-import {
-  messagesFromLineage,
-  messagesFromLineageForHuggingFaceConversational,
-  messagesFromLineageForHuggingFaceTextGeneration,
-  promptFromLineage,
-} from "../utils/prompt";
+import { messagesFromLineage, promptFromLineage } from "../utils/prompt";
 import { getQueryParam, resetURL } from "../utils/qparams";
 import { useDebouncedWindowResize } from "../utils/resize";
 import {
@@ -196,7 +190,7 @@ function App() {
 
   const [reactFlow, setReactFlow] = useState<ReactFlowInstance | null>(null);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<FluxNodeData>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
   const edgeUpdateSuccessful = useRef(true);
@@ -368,7 +362,7 @@ function App() {
             (i - (responses - 1) / 2) * 180,
           // Add OVERLAP_RANDOMNESS_MAX of randomness to the y position so that nodes don't overlap.
           y: currentNode.position.y + 100 + Math.random() * OVERLAP_RANDOMNESS_MAX,
-          fluxNodeType: FluxNodeType.GPT,
+          fluxNodeType: FluxNodeType.Model,
           text: "",
           streamId: streamId,
         })
@@ -949,7 +943,25 @@ function App() {
   useHotkeys(`${modifierKey}+down`, moveToChild, HOTKEY_CONFIG);
   // useHotkeys(`${modifierKey}+left`, moveToLeftSibling, HOTKEY_CONFIG);
   // useHotkeys(`${modifierKey}+right`, moveToRightSibling, HOTKEY_CONFIG);
-  useHotkeys(`${modifierKey}+return`, () => submitPrompt(), HOTKEY_CONFIG);
+  useHotkeys(
+    `${modifierKey}+return`,
+    () => {
+      if (selectedNodeId != null) {
+        const curr = getFluxNode(nodes, selectedNodeId);
+        if (curr === undefined) {
+          return newUserNodeLinkedToANewSystemNode();
+        } else if (
+          curr.data.fluxNodeType === FluxNodeType.Model ||
+          curr.data.fluxNodeType === FluxNodeType.System
+        ) {
+          return newConnectedToSelectedNode(FluxNodeType.User);
+        } else if (curr.data.fluxNodeType) {
+          return submitPrompt();
+        }
+      }
+    },
+    HOTKEY_CONFIG
+  );
   useHotkeys(`${modifierKey}+shift+delete`, deleteSelectedNodes, HOTKEY_CONFIG);
   useHotkeys(`${modifierKey}+shift+c`, copyMessagesToClipboard, HOTKEY_CONFIG);
 
@@ -1138,7 +1150,7 @@ function App() {
                   height="100px"
                   fontSize="xl"
                   onClick={() => newUserNodeLinkedToANewSystemNode()}
-                  color={getFluxNodeTypeDarkColor(FluxNodeType.GPT)}
+                  color={getFluxNodeTypeDarkColor(FluxNodeType.Model)}
                 >
                   Create a new conversation tree
                 </BigButton>
