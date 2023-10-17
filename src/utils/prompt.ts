@@ -3,12 +3,31 @@ import { ChatCompletionRequestMessage } from "openai-streams";
 import { MAX_AUTOLABEL_CHARS } from "./constants";
 import { Node } from "reactflow";
 
-export function messagesFromLineageForHuggingFace(lineage: Node<FluxNodeData>[]) {
+export function messagesFromLineageForHuggingFaceTextGeneration(
+  lineage: Node<FluxNodeData>[]
+): string {
+  let str = "";
+
+  for (let i = lineage.length - 3; i >= 0; i--) {
+    const node = lineage[i];
+    str += node.data.text;
+  }
+
+  return str;
+}
+
+export function messagesFromLineageForHuggingFaceConversational(
+  lineage: Node<FluxNodeData>[]
+): {
+  past_user_inputs: string[];
+  generated_responses: string[];
+  text: string;
+} {
   const past_user_inputs: string[] = [];
   const generated_responses: string[] = [];
-  const text = lineage[lineage.length - 1].data.text;
+  const text = lineage[lineage.length - 2].data.text;
 
-  for (let i = lineage.length - 2; i >= 0; i--) {
+  for (let i = lineage.length - 3; i >= 0; i--) {
     const node = lineage[i];
     if (node.data.fluxNodeType === FluxNodeType.System) {
       continue;
@@ -19,14 +38,19 @@ export function messagesFromLineageForHuggingFace(lineage: Node<FluxNodeData>[])
     }
   }
 
-  past_user_inputs.reverse();
-  generated_responses.reverse();
+  // past_user_inputs.reverse();
+  // generated_responses.reverse();
+
+  if (past_user_inputs.length != generated_responses.length) {
+    throw new Error("Mismatched past_user_inputs and generated_responses");
+  }
 
   const messages = {
-    past_user_inputs: past_user_inputs,
     generated_responses: generated_responses,
+    past_user_inputs: past_user_inputs,
     text: text,
   };
+  console.log(messages);
 
   return messages;
 }

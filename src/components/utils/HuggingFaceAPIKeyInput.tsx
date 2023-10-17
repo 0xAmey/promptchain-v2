@@ -12,10 +12,10 @@ export function HuggingFaceAPIKeyInput({
   return (
     <LabeledPasswordInputWithLink
       width="80%"
-      label="HuggingFace API Key"
+      label="OpenRouter API Key"
       linkLabel="Get a key"
-      placeholder="hf-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-      link="https://huggingface.co/settings/tokens"
+      placeholder="sk-or-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+      link="https://openrouter.ai/keys"
       value={apiKey ?? ""}
       setValue={setApiKey}
       {...others}

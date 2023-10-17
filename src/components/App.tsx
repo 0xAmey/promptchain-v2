@@ -49,7 +49,8 @@ import { getAvailableOpenAiChatModels } from "../utils/models";
 import { generateNodeId, generateStreamId } from "../utils/nodeId";
 import {
   messagesFromLineage,
-  messagesFromLineageForHuggingFace,
+  messagesFromLineageForHuggingFaceConversational,
+  messagesFromLineageForHuggingFaceTextGeneration,
   promptFromLineage,
 } from "../utils/prompt";
 import { getQueryParam, resetURL } from "../utils/qparams";
@@ -68,10 +69,8 @@ import { SettingsModal } from "./modals/SettingsModal";
 import { BigButton } from "./utils/BigButton";
 import { NavigationBar } from "./utils/NavigationBar";
 import { CheckCircleIcon } from "@chakra-ui/icons";
-import { Box, useDisclosure, Spinner, useToast, Button } from "@chakra-ui/react";
+import { Box, useDisclosure, Spinner, useToast, Button, HStack } from "@chakra-ui/react";
 import mixpanel from "mixpanel-browser";
-import { OpenAI } from "openai-streams";
-import { HfInference } from "@huggingface/inference";
 import { Resizable } from "re-resizable";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useBeforeunload } from "react-beforeunload";
@@ -91,6 +90,8 @@ import ReactFlow, {
   updateEdge,
 } from "reactflow";
 import "reactflow/dist/style.css";
+import { OpenAI as OpenAIStreams } from "openai-streams";
+import OpenAI from "openai";
 import { yieldStream } from "yield-stream";
 
 function App() {
@@ -139,8 +140,6 @@ function App() {
       ...past.slice(past.length - MAX_HISTORY_SIZE + 1, past.length),
       { nodes, edges, selectedNodeId, lastSelectedNodeId },
     ]);
-
-    console.log(edges);
 
     // Whenever we take a new snapshot, the redo operations
     // need to be cleared to avoid state mismatches.
@@ -331,17 +330,189 @@ function App() {
     const currentNode = getFluxNode(newNodes, parentNode.id)!;
     const currentNodeChildren = getFluxNodeGPTChildren(newNodes, edges, parentNode.id);
 
-    const streamId = generateStreamId();
-
     let firstCompletionId: string | undefined;
 
     setActiveModels((prev) => {
       const lmeow = prev.filter((meow) => !selectedModels.includes(meow));
-      console.log(prev);
       return lmeow;
     });
 
     const responses = activeModels.length;
+
+    for (let i = 0; i < responses; i++) {
+      const model: string = activeModels[i];
+      const id = generateNodeId();
+      const streamId = generateStreamId();
+
+      if (i === 0) firstCompletionId = id;
+
+      // create a new node.
+      newNodes.push(
+        newFluxNode({
+          id,
+          // Position it 50px below the current node, offset
+          // horizontally according to the number of responses
+          // such that the middle response is right below the current node.
+          // Note that node x y coords are the top left corner of the node,
+          // so we need to offset by at the width of the node (150px).
+          x:
+            (currentNodeChildren.length > 0
+              ? // If there are already children we want to put the
+                // next child to the right of the furthest right one.
+                currentNodeChildren.reduce((prev, current) =>
+                  prev.position.x > current.position.x ? prev : current
+                ).position.x +
+                (responses / 2) * 180 +
+                90
+              : currentNode.position.x) +
+            (i - (responses - 1) / 2) * 180,
+          // Add OVERLAP_RANDOMNESS_MAX of randomness to the y position so that nodes don't overlap.
+          y: currentNode.position.y + 100 + Math.random() * OVERLAP_RANDOMNESS_MAX,
+          fluxNodeType: FluxNodeType.GPT,
+          text: "",
+          streamId: streamId,
+        })
+      );
+
+      if (model === "gpt-3.5-turbo" || model === "gpt-4") {
+        (async () => {
+          const stream = await OpenAIStreams(
+            "chat",
+            {
+              model,
+              n: 1,
+              temperature: temp,
+              messages: messagesFromLineage(parentNodeLineage, settings),
+            },
+            { apiKey: openAiApiKey!, mode: "raw" }
+          );
+          const DECODER = new TextDecoder();
+          const abortController = new AbortController();
+          for await (const chunk of yieldStream(stream)) {
+            if (abortController.signal.aborted) break;
+            try {
+              const decoded = JSON.parse(DECODER.decode(chunk));
+              if (decoded.choices === undefined)
+                throw new Error(
+                  "No choices in response. Decoded response: " + JSON.stringify(decoded)
+                );
+              const choice: CreateChatCompletionStreamResponseChoicesInner =
+                decoded.choices[0];
+              if (choice.index === undefined)
+                throw new Error(
+                  "No index in choice. Decoded choice: " + JSON.stringify(choice)
+                );
+              // The ChatGPT API will start by returning a
+              // choice with only a role delta and no content.
+              if (choice.delta?.content) {
+                setNodes((newerNodes) => {
+                  try {
+                    return appendTextToFluxNodeAsGPT(newerNodes, {
+                      id: id,
+                      text: choice.delta?.content ?? UNDEFINED_RESPONSE_STRING,
+                      streamId: streamId, // This will cause a throw if the streamId has changed.
+                    });
+                  } catch (e: any) {
+                    // If the stream id does not match,
+                    // it is stale and we should abort.
+                    abortController.abort(e.message);
+                    return newerNodes;
+                  }
+                });
+              }
+              // We cannot return within the loop, and we do
+              // not want to execute the code below, so we break.
+              if (abortController.signal.aborted) break;
+            } catch (err) {
+              console.error(err);
+            }
+          }
+        })().catch((err) =>
+          toast({
+            title: err.toString(),
+            status: "error",
+            ...TOAST_CONFIG,
+          })
+        );
+      } else {
+        const openai = new OpenAI({
+          baseURL: "https://openrouter.ai/api/v1",
+          apiKey: huggingFaceApiKey as string,
+          defaultHeaders: {
+            "HTTP-Referer": "http://127.0.0.1:5173/", // To identify your app. Can be set to localhost for testing
+            "X-Title": "promptchain", // Optional. Shows on openrouter.ai
+          },
+          dangerouslyAllowBrowser: true,
+        });
+
+        (async () => {
+          const res = await openai.chat.completions.create({
+            model: model,
+            messages: messagesFromLineage(parentNodeLineage, settings),
+            stream: true,
+          });
+
+          let text: string = "";
+          for await (const part of res) {
+            setNodes((newerNodes) => {
+              try {
+                return appendTextToFluxNodeAsGPT(newerNodes, {
+                  id: id,
+                  text: part.choices[0]?.delta?.content ?? UNDEFINED_RESPONSE_STRING,
+                  streamId: streamId, // This will cause a throw if the streamId has changed.
+                });
+              } catch (e: any) {
+                // If the stream id does not match,
+                // it is stale and we should abort.
+                console.log(e);
+                return newerNodes;
+              }
+            });
+          }
+        })().catch((err) =>
+          toast({
+            title: err.toString(),
+            status: "error",
+            ...TOAST_CONFIG,
+          })
+        );
+      }
+
+      if (firstCompletionId === undefined) throw new Error("No first completion id!");
+
+      // setNodes((nodes) => setFluxNodeStreamId(nodes, { id: id, streamId: undefined }));
+
+      setEdges((edges) =>
+        modifyFluxEdge(edges, {
+          source: parentNode.id,
+          target: id,
+          animated: false,
+        })
+      );
+
+      setNodes(markOnlyNodeAsSelected(newNodes, firstCompletionId!));
+      setLastSelectedNodeId(selectedNodeId);
+      setSelectedNodeId(firstCompletionId);
+
+      setEdges((edges) => {
+        let newEdges = [...edges];
+
+        // the new nodes are added to the end of the array, so we need to
+        // subtract responses from and add i to length of the array to access.
+        const childId = newNodes[newNodes.length - responses + i].id;
+
+        // add a new edge.
+        newEdges.push(
+          newFluxEdge({
+            source: parentNode.id,
+            target: childId,
+            animated: false,
+          })
+        );
+
+        return newEdges;
+      });
+    }
 
     autoZoomIfNecessary();
 
@@ -635,16 +806,11 @@ function App() {
           ? [
               ...new Set([
                 ...prev,
-                "meta-llama/Llama-2-70b-chat-hf",
-                "meta-llama/Llama-2-13b-chat-hf",
-                "meta-llama/Llama-2-7b-chat-hf",
+                "meta-llama/Llama-2-70b-chat",
+                "meta-llama/Llama-2-13b-chat",
               ]),
             ]
-          : [
-              "meta-llama/Llama-2-70b-chat-hf",
-              "meta-llama/Llama-2-13b-chat-hf",
-              "meta-llama/Llama-2-7b-chat-hf",
-            ]
+          : ["meta-llama/Llama-2-70b-chat", "meta-llama/Llama-2-13b-chat"]
       );
     }
   }, [openAiApiKey, huggingFaceApiKey]);
@@ -663,10 +829,10 @@ function App() {
 
   // default models
   const [selectedModels, setSelectedModels] = useState<string[]>(() => {
-    if (isValidOpenAiAPIKey(openAiApiKey)) {
+    if (isValidHuggingFaceAPIKey(huggingFaceApiKey)) {
+      return ["meta-llama/Llama-2-13b-chat", "meta-llama/Llama-2-70b-chat"];
+    } else if (isValidOpenAiAPIKey(openAiApiKey)) {
       return ["gpt-3.5-turbo", "gpt-4"];
-    } else if (isValidHuggingFaceAPIKey(huggingFaceApiKey)) {
-      return ["meta-llama/Llama-2-70b-chat-hf", "meta-llama/Llama-2-13b-chat-hf"];
     } else {
       return [];
     }
@@ -781,11 +947,10 @@ function App() {
 
   useHotkeys(`${modifierKey}+up`, moveToParent, HOTKEY_CONFIG);
   useHotkeys(`${modifierKey}+down`, moveToChild, HOTKEY_CONFIG);
-  useHotkeys(`${modifierKey}+left`, moveToLeftSibling, HOTKEY_CONFIG);
-  useHotkeys(`${modifierKey}+right`, moveToRightSibling, HOTKEY_CONFIG);
+  // useHotkeys(`${modifierKey}+left`, moveToLeftSibling, HOTKEY_CONFIG);
+  // useHotkeys(`${modifierKey}+right`, moveToRightSibling, HOTKEY_CONFIG);
   useHotkeys(`${modifierKey}+return`, () => submitPrompt(), HOTKEY_CONFIG);
-  useHotkeys(`${modifierKey}+shift+return`, () => submitPrompt(), HOTKEY_CONFIG);
-  // useHotkeys(`${modifierKey}+backspace`, deleteSelectedNodes, HOTKEY_CONFIG);
+  useHotkeys(`${modifierKey}+shift+delete`, deleteSelectedNodes, HOTKEY_CONFIG);
   useHotkeys(`${modifierKey}+shift+c`, copyMessagesToClipboard, HOTKEY_CONFIG);
 
   /*//////////////////////////////////////////////////////////////

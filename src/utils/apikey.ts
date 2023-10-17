@@ -3,5 +3,5 @@ export function isValidOpenAiAPIKey(apiKey: string | null) {
 }
 
 export function isValidHuggingFaceAPIKey(apiKey: string | null) {
-  return apiKey?.length == 37 && apiKey?.startsWith("hf_");
+  return apiKey?.length == 73 && apiKey?.startsWith("sk-or");
 }
