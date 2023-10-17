@@ -13,7 +13,6 @@
     "@chakra-ui/react": "^2.5.1",
     "@emotion/react": "^11.10.6",
     "@emotion/styled": "^11.10.6",
-    "ai": "^2.2.15",
     "framer-motion": "^9.0.4",
     "highlightjs-solidity": "^2.0.6",
     "mixpanel-browser": "^2.46.0",
