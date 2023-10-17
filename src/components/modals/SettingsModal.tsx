@@ -3,7 +3,6 @@ import { getFluxNodeTypeDarkColor } from "../../utils/color";
 import { DEFAULT_SETTINGS } from "../../utils/constants";
 import { Settings, FluxNodeType } from "../../utils/types";
 import { OpenAiAPIKeyInput } from "../utils/OpenAiAPIKeyInput";
-import { LabeledSelect, LabeledSlider } from "../utils/LabeledInputs";
 
 import {
   Button,
@@ -113,37 +112,6 @@ export const SettingsModal = memo(function SettingsModal({
             apiKey={huggingFaceApiKey}
             setApiKey={setHuggingFaceApiKey}
           />
-
-          <LabeledSlider
-            mt={4}
-            label="Temperature (randomness)"
-            value={settings.temp}
-            setValue={(v: number) => {
-              setSettings({ ...settings, temp: v });
-
-              if (MIXPANEL_TOKEN) mixpanel.track("Changed temperature");
-            }}
-            color={getFluxNodeTypeDarkColor(FluxNodeType.User)}
-            max={1.25}
-            min={0}
-            step={0.01}
-          />
-
-          <LabeledSlider
-            mt={3}
-            label="Number of Responses"
-            value={settings.n}
-            setValue={(v: number) => {
-              setSettings({ ...settings, n: v });
-
-              if (MIXPANEL_TOKEN) mixpanel.track("Changed number of responses");
-            }}
-            color={getFluxNodeTypeDarkColor(FluxNodeType.User)}
-            max={10}
-            min={1}
-            step={1}
-          />
-
           <Checkbox
             mt={3}
             fontWeight="bold"
