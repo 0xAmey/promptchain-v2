@@ -202,7 +202,12 @@ export function LabeledSelect({
   return (
     <Box {...others}>
       <b>{label}:</b>
-      <Select mt={2} onChange={(e) => setValue(e.target.value)} value={value}>
+      <Select
+        placeholder="Select a model to add..."
+        mt={2}
+        // onChange={(e) => setValue(e.target.value)}
+        // value={value}
+      >
         {options.map((o) => (
           <option key={o}>{o}</option>
         ))}

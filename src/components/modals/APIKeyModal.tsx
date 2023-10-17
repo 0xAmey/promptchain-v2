@@ -5,20 +5,37 @@ import { Modal, ModalOverlay, ModalContent, Link, Text } from "@chakra-ui/react"
 import { MIXPANEL_TOKEN } from "../../main";
 
 import { Column } from "../../utils/chakra";
-import { isValidAPIKey } from "../../utils/apikey";
-import { APIKeyInput } from "../utils/APIKeyInput";
+import { isValidOpenAiAPIKey, isValidHuggingFaceAPIKey } from "../../utils/apikey";
+import { OpenAiAPIKeyInput } from "../utils/OpenAiAPIKeyInput";
+import { HuggingFaceAPIKeyInput } from "../utils/HuggingFaceAPIKeyInput";
 
 export function APIKeyModal({
-  apiKey,
-  setApiKey,
+  openAiApiKey,
+  setOpenAiApiKey,
+  huggingFaceApiKey,
+  setHuggingFaceApiKey,
 }: {
-  apiKey: string | null;
-  setApiKey: (apiKey: string) => void;
+  openAiApiKey: string | null;
+  setOpenAiApiKey: (apiKey: string) => void;
+  huggingFaceApiKey: string | null;
+  setHuggingFaceApiKey: (apiKey: string) => void;
 }) {
-  const setApiKeyTracked = (apiKey: string) => {
-    setApiKey(apiKey);
+  const setOpenAiApiKeyTracked = (apiKey: string) => {
+    setOpenAiApiKey(apiKey);
 
-    if (isValidAPIKey(apiKey)) {
+    if (isValidOpenAiAPIKey(openAiApiKey)) {
+      if (MIXPANEL_TOKEN) mixpanel.track("Entered API Key"); // KPI
+
+      // Hacky way to get the prompt box to focus after the
+      // modal closes. Long term should probably use a ref.
+      setTimeout(() => window.document.getElementById("promptBox")?.focus(), 50);
+    }
+  };
+
+  const setHuggingFaceApiKeyTracked = (apiKey: string) => {
+    setHuggingFaceApiKey(apiKey);
+
+    if (isValidHuggingFaceAPIKey(openAiApiKey)) {
       if (MIXPANEL_TOKEN) mixpanel.track("Entered API Key"); // KPI
 
       // Hacky way to get the prompt box to focus after the
@@ -38,14 +55,13 @@ export function APIKeyModal({
       <ModalOverlay />
       <ModalContent>
         <Column mainAxisAlignment="center" crossAxisAlignment="center" height="500px">
-          <APIKeyInput apiKey={apiKey} setApiKey={setApiKeyTracked} />
+          <OpenAiAPIKeyInput apiKey={openAiApiKey} setApiKey={setOpenAiApiKeyTracked} />
+          <HuggingFaceAPIKeyInput
+            apiKey={huggingFaceApiKey}
+            setApiKey={setHuggingFaceApiKeyTracked}
+          />
           <Text mt={5} width="80%" textAlign="center" fontSize="md">
-            We will <u>never</u> upload, log, or store your API key outside of your
-            browser's local storage. Verify for yourself{" "}
-            <Link href="https://github.com/transmissions11/flux" color="green" isExternal>
-              here
-            </Link>
-            .
+            Your API Keys will <u>never</u> leave your browser's local storage.
           </Text>
         </Column>
       </ModalContent>

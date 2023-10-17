@@ -3,6 +3,34 @@ import { ChatCompletionRequestMessage } from "openai-streams";
 import { MAX_AUTOLABEL_CHARS } from "./constants";
 import { Node } from "reactflow";
 
+export function messagesFromLineageForHuggingFace(lineage: Node<FluxNodeData>[]) {
+  const past_user_inputs: string[] = [];
+  const generated_responses: string[] = [];
+  const text = lineage[lineage.length - 1].data.text;
+
+  for (let i = lineage.length - 2; i >= 0; i--) {
+    const node = lineage[i];
+    if (node.data.fluxNodeType === FluxNodeType.System) {
+      continue;
+    } else if (node.data.fluxNodeType === FluxNodeType.User) {
+      past_user_inputs.push(node.data.text);
+    } else {
+      generated_responses.push(node.data.text);
+    }
+  }
+
+  past_user_inputs.reverse();
+  generated_responses.reverse();
+
+  const messages = {
+    past_user_inputs: past_user_inputs,
+    generated_responses: generated_responses,
+    text: text,
+  };
+
+  return messages;
+}
+
 export function messagesFromLineage(
   lineage: Node<FluxNodeData>[],
   settings: Settings

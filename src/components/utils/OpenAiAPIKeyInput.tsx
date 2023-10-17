@@ -1,7 +1,7 @@
 import { BoxProps } from "@chakra-ui/react";
 import { LabeledPasswordInputWithLink } from "./LabeledInputs";
 
-export function APIKeyInput({
+export function OpenAiAPIKeyInput({
   apiKey,
   setApiKey,
   ...others

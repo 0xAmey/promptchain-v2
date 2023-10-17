@@ -2,7 +2,7 @@ import { MIXPANEL_TOKEN } from "../../main";
 import { getFluxNodeTypeDarkColor } from "../../utils/color";
 import { DEFAULT_SETTINGS } from "../../utils/constants";
 import { Settings, FluxNodeType } from "../../utils/types";
-import { APIKeyInput } from "../utils/APIKeyInput";
+import { OpenAiAPIKeyInput } from "../utils/OpenAiAPIKeyInput";
 import { LabeledSelect, LabeledSlider } from "../utils/LabeledInputs";
 
 import {
@@ -18,23 +18,35 @@ import {
 } from "@chakra-ui/react";
 import mixpanel from "mixpanel-browser";
 import { ChangeEvent, memo } from "react";
+import { HuggingFaceAPIKeyInput } from "../utils/HuggingFaceAPIKeyInput";
+import ModalCheckboxDropdown from "../utils/ModalCheckboxDropdown";
+
+const selectModelText = "Select a model to add";
 
 export const SettingsModal = memo(function SettingsModal({
   isOpen,
   onClose,
   settings,
   setSettings,
-  apiKey,
-  setApiKey,
-  availableModels
+  openAiApiKey,
+  setOpenAiApiKey,
+  huggingFaceApiKey,
+  setHuggingFaceApiKey,
+  availableModels,
+  selectedModels,
+  setSelectedModels,
 }: {
   isOpen: boolean;
   onClose: () => void;
   settings: Settings;
   setSettings: (settings: Settings) => void;
-  apiKey: string | null;
-  setApiKey: (apiKey: string) => void;
+  openAiApiKey: string | null;
+  setOpenAiApiKey: (openAiApiKey: string) => void;
+  huggingFaceApiKey: string | null;
+  setHuggingFaceApiKey: (huggingFaceApiKey: string) => void;
   availableModels: string[] | null;
+  selectedModels: string[];
+  setSelectedModels: (selectedModels: string[]) => void;
 }) {
   const reset = () => {
     if (
@@ -77,18 +89,27 @@ export const SettingsModal = memo(function SettingsModal({
         <ModalHeader>Settings</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
-          <LabeledSelect
-            label="Model"
-            value={settings.model}
-            options={availableModels || [settings.model]}
-            setValue={(v: string) => {
-              setSettings({ ...settings, model: v });
+          {/* CHECKBOX DROPDOWN */}
 
-              if (MIXPANEL_TOKEN) mixpanel.track("Changed model");
-            }}
+          <ModalCheckboxDropdown
+            availableModels={availableModels}
+            selectedModels={selectedModels}
+            setSelectedModels={setSelectedModels}
           />
 
-          <APIKeyInput mt={4} width="100%" apiKey={apiKey} setApiKey={setApiKey} />
+          <OpenAiAPIKeyInput
+            mt={4}
+            width="100%"
+            apiKey={openAiApiKey}
+            setApiKey={setOpenAiApiKey}
+          />
+
+          <HuggingFaceAPIKeyInput
+            mt={4}
+            width={"100%"}
+            apiKey={huggingFaceApiKey}
+            setApiKey={setHuggingFaceApiKey}
+          />
 
           <LabeledSlider
             mt={4}

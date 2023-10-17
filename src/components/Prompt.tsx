@@ -9,31 +9,36 @@ import { Markdown } from "./utils/Markdown";
 import { EditIcon, ViewIcon, NotAllowedIcon } from "@chakra-ui/icons";
 import { Spinner, Text, Button, flexbox, Box, Flex } from "@chakra-ui/react";
 import mixpanel from "mixpanel-browser";
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import TextareaAutosize from "react-textarea-autosize";
 import { Node, useReactFlow } from "reactflow";
 import { getPlatformModifierKeyText } from "../utils/platform";
 import { Whisper } from "./utils/Whisper";
+import ButtonGrid from "./utils/ButtonGrid";
 
 export function Prompt({
+  selectedModels,
+  activeModels,
+  setActiveModels,
   selectedNodeId,
   lineage,
   submitPrompt,
   onType,
   selectNode,
   newConnectedToSelectedNode,
-  isGPT4,
   settings,
   setSettings,
   apiKey,
 }: {
+  selectedModels: string[];
+  activeModels: string[];
+  setActiveModels: React.Dispatch<React.SetStateAction<string[]>>;
   selectedNodeId: string | null;
   lineage: Node<FluxNodeData>[];
   onType: (text: string) => void;
   submitPrompt: () => Promise<void>;
   selectNode: (id: string) => void;
   newConnectedToSelectedNode: (type: FluxNodeType) => void;
-  isGPT4: boolean;
   settings: Settings;
   setSettings: (settings: Settings) => void;
   apiKey: string | null;
@@ -386,6 +391,11 @@ export function Prompt({
       <Box flexGrow={1}></Box>
       <Box flexGrow={0}>
         {/* Display clickable buttons for 4 different models */}
+        <ButtonGrid
+          selectedModels={selectedModels}
+          activeModels={activeModels}
+          setActiveModels={setActiveModels}
+        />
         <Row
           mainAxisAlignment="center"
           crossAxisAlignment="stretch"

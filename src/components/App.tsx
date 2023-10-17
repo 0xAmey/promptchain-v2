@@ -1,11 +1,10 @@
 import { MIXPANEL_TOKEN } from "../main";
-import { isValidAPIKey } from "../utils/apikey";
+import { isValidHuggingFaceAPIKey, isValidOpenAiAPIKey } from "../utils/apikey";
 import { Column, Row } from "../utils/chakra";
 import { copySnippetToClipboard } from "../utils/clipboard";
 import { getFluxNodeTypeColor, getFluxNodeTypeDarkColor } from "../utils/color";
 import { getPlatformModifierKey, getPlatformModifierKeyText } from "../utils/platform";
 import {
-  API_KEY_LOCAL_STORAGE_KEY,
   DEFAULT_SETTINGS,
   FIT_VIEW_SETTINGS,
   HOTKEY_CONFIG,
@@ -19,6 +18,8 @@ import {
   UNDEFINED_RESPONSE_STRING,
   STREAM_CANCELED_ERROR_MESSAGE,
   SAVED_CHAT_SIZE_LOCAL_STORAGE_KEY,
+  OPENAI_API_KEY_LOCAL_STORAGE_KEY,
+  HUGGINGFACE_API_KEY_LOCAL_STORAGE_KEY,
 } from "../utils/constants";
 import { useDebouncedEffect } from "../utils/debounce";
 import { newFluxEdge, modifyFluxEdge, addFluxEdge } from "../utils/fluxEdge";
@@ -44,9 +45,13 @@ import {
 } from "../utils/fluxNode";
 import { useLocalStorage } from "../utils/lstore";
 import { mod } from "../utils/mod";
-import { getAvailableChatModels } from "../utils/models";
+import { getAvailableOpenAiChatModels } from "../utils/models";
 import { generateNodeId, generateStreamId } from "../utils/nodeId";
-import { messagesFromLineage, promptFromLineage } from "../utils/prompt";
+import {
+  messagesFromLineage,
+  messagesFromLineageForHuggingFace,
+  promptFromLineage,
+} from "../utils/prompt";
 import { getQueryParam, resetURL } from "../utils/qparams";
 import { useDebouncedWindowResize } from "../utils/resize";
 import {
@@ -63,9 +68,10 @@ import { SettingsModal } from "./modals/SettingsModal";
 import { BigButton } from "./utils/BigButton";
 import { NavigationBar } from "./utils/NavigationBar";
 import { CheckCircleIcon } from "@chakra-ui/icons";
-import { Box, useDisclosure, Spinner, useToast } from "@chakra-ui/react";
+import { Box, useDisclosure, Spinner, useToast, Button } from "@chakra-ui/react";
 import mixpanel from "mixpanel-browser";
-import { CreateCompletionResponseChoicesInner, OpenAI } from "openai-streams";
+import { OpenAI } from "openai-streams";
+import { HfInference } from "@huggingface/inference";
 import { Resizable } from "re-resizable";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useBeforeunload } from "react-beforeunload";
@@ -91,6 +97,36 @@ function App() {
   const toast = useToast();
 
   /*//////////////////////////////////////////////////////////////
+                 ALLOW DRAG ON SPACEBAR HOLD LOGIC
+  //////////////////////////////////////////////////////////////*/
+
+  const [allowPanOnDrag, setAllowPanOnDrag] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.code === "Space") {
+        setAllowPanOnDrag(true);
+      }
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (event.code === "Space") {
+        setAllowPanOnDrag(false);
+      }
+    };
+
+    // Attach event listeners
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, []);
+
+  /*//////////////////////////////////////////////////////////////
                           UNDO REDO LOGIC
   //////////////////////////////////////////////////////////////*/
 
@@ -103,6 +139,8 @@ function App() {
       ...past.slice(past.length - MAX_HISTORY_SIZE + 1, past.length),
       { nodes, edges, selectedNodeId, lastSelectedNodeId },
     ]);
+
+    console.log(edges);
 
     // Whenever we take a new snapshot, the redo operations
     // need to be cleared to avoid state mismatches.
@@ -214,7 +252,7 @@ function App() {
   };
 
   const trackedAutoZoom = () => {
-    autoZoom();
+    // autoZoom();
 
     if (MIXPANEL_TOKEN) mixpanel.track("Zoomed out and centered");
   };
@@ -280,12 +318,10 @@ function App() {
 
   // Takes a prompt, submits it to the GPT API with n responses,
   // then creates a child node for each response under the selected node.
-  const submitPrompt = async (overrideExistingIfPossible: boolean) => {
+  const submitPrompt = async () => {
     takeSnapshot();
 
-    const responses = settings.n;
     const temp = settings.temp;
-    const model = settings.model;
 
     const parentNodeLineage = selectedNodeLineage;
     const parentNode = selectedNodeLineage[0];
@@ -299,313 +335,17 @@ function App() {
 
     let firstCompletionId: string | undefined;
 
-    // Update newNodes, adding new child nodes as
-    // needed, re-using existing ones wherever possible if overrideExistingIfPossible is set.
-    for (let i = 0; i < responses; i++) {
-      // If we have enough children, and overrideExistingIfPossible is true, we'll just re-use one.
-      if (overrideExistingIfPossible && i < currentNodeChildren.length) {
-        const childNode = currentNodeChildren[i];
-
-        if (i === 0) firstCompletionId = childNode.id;
-
-        const idx = newNodes.findIndex((node) => node.id === childNode.id);
-
-        newNodes[idx] = {
-          ...childNode,
-          data: {
-            ...childNode.data,
-            text: "",
-            label: childNode.data.label ?? displayNameFromFluxNodeType(FluxNodeType.GPT),
-            fluxNodeType: FluxNodeType.GPT,
-            streamId,
-          },
-          style: {
-            ...childNode.style,
-            background: getFluxNodeTypeColor(FluxNodeType.GPT),
-          },
-        };
-      } else {
-        const id = generateNodeId();
-
-        if (i === 0) firstCompletionId = id;
-
-        // Otherwise, we'll create a new node.
-        newNodes.push(
-          newFluxNode({
-            id,
-            // Position it 50px below the current node, offset
-            // horizontally according to the number of responses
-            // such that the middle response is right below the current node.
-            // Note that node x y coords are the top left corner of the node,
-            // so we need to offset by at the width of the node (150px).
-            x:
-              (currentNodeChildren.length > 0
-                ? // If there are already children we want to put the
-                  // next child to the right of the furthest right one.
-                  currentNodeChildren.reduce((prev, current) =>
-                    prev.position.x > current.position.x ? prev : current
-                  ).position.x +
-                  (responses / 2) * 180 +
-                  90
-                : currentNode.position.x) +
-              (i - (responses - 1) / 2) * 180,
-            // Add OVERLAP_RANDOMNESS_MAX of randomness to the y position so that nodes don't overlap.
-            y: currentNode.position.y + 100 + Math.random() * OVERLAP_RANDOMNESS_MAX,
-            fluxNodeType: FluxNodeType.GPT,
-            text: "",
-            streamId,
-          })
-        );
-      }
-    }
-
-    if (firstCompletionId === undefined) throw new Error("No first completion id!");
-
-    (async () => {
-      const stream = await OpenAI(
-        "chat",
-        {
-          model,
-          n: responses,
-          temperature: temp,
-          messages: messagesFromLineage(parentNodeLineage, settings),
-        },
-        { apiKey: apiKey!, mode: "raw" }
-      );
-
-      const DECODER = new TextDecoder();
-
-      const abortController = new AbortController();
-
-      for await (const chunk of yieldStream(stream, abortController)) {
-        if (abortController.signal.aborted) break;
-
-        try {
-          const decoded = JSON.parse(DECODER.decode(chunk));
-
-          if (decoded.choices === undefined)
-            throw new Error(
-              "No choices in response. Decoded response: " + JSON.stringify(decoded)
-            );
-
-          const choice: CreateChatCompletionStreamResponseChoicesInner =
-            decoded.choices[0];
-
-          if (choice.index === undefined)
-            throw new Error(
-              "No index in choice. Decoded choice: " + JSON.stringify(choice)
-            );
-
-          const correspondingNodeId =
-            // If we re-used a node we have to pull it from children array.
-            overrideExistingIfPossible && choice.index < currentNodeChildren.length
-              ? currentNodeChildren[choice.index].id
-              : newNodes[newNodes.length - responses + choice.index].id;
-
-          // The ChatGPT API will start by returning a
-          // choice with only a role delta and no content.
-          if (choice.delta?.content) {
-            setNodes((newerNodes) => {
-              try {
-                return appendTextToFluxNodeAsGPT(newerNodes, {
-                  id: correspondingNodeId,
-                  text: choice.delta?.content ?? UNDEFINED_RESPONSE_STRING,
-                  streamId, // This will cause a throw if the streamId has changed.
-                });
-              } catch (e: any) {
-                // If the stream id does not match,
-                // it is stale and we should abort.
-                abortController.abort(e.message);
-
-                return newerNodes;
-              }
-            });
-          }
-
-          // We cannot return within the loop, and we do
-          // not want to execute the code below, so we break.
-          if (abortController.signal.aborted) break;
-
-          // If the choice has a finish reason, then it's the final
-          // choice and we can mark it as no longer animated right now.
-          if (choice.finish_reason !== null) {
-            // Reset the stream id.
-            setNodes((nodes) =>
-              setFluxNodeStreamId(nodes, { id: correspondingNodeId, streamId: undefined })
-            );
-
-            setEdges((edges) =>
-              modifyFluxEdge(edges, {
-                source: parentNode.id,
-                target: correspondingNodeId,
-                animated: false,
-              })
-            );
-          }
-        } catch (err) {
-          console.error(err);
-        }
-      }
-
-      // If the stream wasn't aborted or was aborted due to a cancelation.
-      if (
-        !abortController.signal.aborted ||
-        abortController.signal.reason === STREAM_CANCELED_ERROR_MESSAGE
-      ) {
-        // Mark all the edges as no longer animated.
-        for (let i = 0; i < responses; i++) {
-          const correspondingNodeId =
-            overrideExistingIfPossible && i < currentNodeChildren.length
-              ? currentNodeChildren[i].id
-              : newNodes[newNodes.length - responses + i].id;
-
-          // Reset the stream id.
-          setNodes((nodes) =>
-            setFluxNodeStreamId(nodes, { id: correspondingNodeId, streamId: undefined })
-          );
-
-          setEdges((edges) =>
-            modifyFluxEdge(edges, {
-              source: parentNode.id,
-              target: correspondingNodeId,
-              animated: false,
-            })
-          );
-        }
-      }
-    })().catch((err) =>
-      toast({
-        title: err.toString(),
-        status: "error",
-        ...TOAST_CONFIG,
-      })
-    );
-
-    setNodes(markOnlyNodeAsSelected(newNodes, firstCompletionId!));
-
-    setLastSelectedNodeId(selectedNodeId);
-    setSelectedNodeId(firstCompletionId);
-
-    setEdges((edges) => {
-      let newEdges = [...edges];
-
-      for (let i = 0; i < responses; i++) {
-        // Update the links between
-        // re-used nodes if necessary.
-        if (overrideExistingIfPossible && i < currentNodeChildren.length) {
-          const childId = currentNodeChildren[i].id;
-
-          const idx = newEdges.findIndex(
-            (edge) => edge.source === parentNode.id && edge.target === childId
-          );
-
-          newEdges[idx] = {
-            ...newEdges[idx],
-            animated: true,
-          };
-        } else {
-          // The new nodes are added to the end of the array, so we need to
-          // subtract responses from and add i to length of the array to access.
-          const childId = newNodes[newNodes.length - responses + i].id;
-
-          // Otherwise, add a new edge.
-          newEdges.push(
-            newFluxEdge({
-              source: parentNode.id,
-              target: childId,
-              animated: true,
-            })
-          );
-        }
-      }
-
-      return newEdges;
+    setActiveModels((prev) => {
+      const lmeow = prev.filter((meow) => !selectedModels.includes(meow));
+      console.log(prev);
+      return lmeow;
     });
+
+    const responses = activeModels.length;
 
     autoZoomIfNecessary();
 
     if (MIXPANEL_TOKEN) mixpanel.track("Submitted Prompt"); // KPI
-  };
-
-  const completeNextWords = () => {
-    takeSnapshot();
-
-    const temp = settings.temp;
-
-    const lineage = selectedNodeLineage;
-    const selectedNodeId = lineage[0].id;
-
-    const streamId = generateStreamId();
-
-    // Set the node's streamId so it will accept the incoming text.
-    setNodes((nodes) => setFluxNodeStreamId(nodes, { id: selectedNodeId, streamId }));
-
-    (async () => {
-      // TODO: Stop sequences for user/assistant/etc?
-      // TODO: Select between instruction and auto raw base models?
-      const stream = await OpenAI(
-        "completions",
-        {
-          // TODO: Allow customizing.
-          model: "text-davinci-003",
-          temperature: temp,
-          prompt: promptFromLineage(lineage, settings),
-          max_tokens: 250,
-          stop: ["\n\n", "assistant:", "user:"],
-        },
-        { apiKey: apiKey!, mode: "raw" }
-      );
-
-      const DECODER = new TextDecoder();
-
-      const abortController = new AbortController();
-
-      for await (const chunk of yieldStream(stream, abortController)) {
-        if (abortController.signal.aborted) break;
-
-        try {
-          const decoded = JSON.parse(DECODER.decode(chunk));
-
-          if (decoded.choices === undefined)
-            throw new Error(
-              "No choices in response. Decoded response: " + JSON.stringify(decoded)
-            );
-
-          const choice: CreateCompletionResponseChoicesInner = decoded.choices[0];
-
-          setNodes((newerNodes) => {
-            try {
-              return appendTextToFluxNodeAsGPT(newerNodes, {
-                id: selectedNodeId,
-                text: choice.text ?? UNDEFINED_RESPONSE_STRING,
-                streamId, // This will cause a throw if the streamId has changed.
-              });
-            } catch (e: any) {
-              // If the stream id does not match,
-              // it is stale and we should abort.
-              abortController.abort(e.message);
-
-              return newerNodes;
-            }
-          });
-        } catch (err) {
-          console.error(err);
-        }
-      }
-
-      // If the stream wasn't aborted or was aborted due to a cancelation.
-      if (
-        !abortController.signal.aborted ||
-        abortController.signal.reason === STREAM_CANCELED_ERROR_MESSAGE
-      ) {
-        // Reset the stream id.
-        setNodes((nodes) =>
-          setFluxNodeStreamId(nodes, { id: selectedNodeId, streamId: undefined })
-        );
-      }
-    })().catch((err) => console.error(err));
-
-    if (MIXPANEL_TOKEN) mixpanel.track("Completed next words");
   };
 
   /*//////////////////////////////////////////////////////////////
@@ -848,8 +588,6 @@ function App() {
     }
   });
 
-  const isGPT4 = settings.model.includes("gpt-4");
-
   // Auto save.
   const isSavingSettings = useDebouncedEffect(
     () => {
@@ -863,54 +601,53 @@ function App() {
                             API KEY LOGIC
   //////////////////////////////////////////////////////////////*/
 
-  const [apiKey, setApiKey] = useLocalStorage<string>(API_KEY_LOCAL_STORAGE_KEY);
+  const [openAiApiKey, setOpenAiApiKey] = useLocalStorage<string>(
+    OPENAI_API_KEY_LOCAL_STORAGE_KEY
+  );
+
+  const [huggingFaceApiKey, setHuggingFaceApiKey] = useLocalStorage<string>(
+    HUGGINGFACE_API_KEY_LOCAL_STORAGE_KEY
+  );
+
+  // TODO: allow user to input both hf and oai api keys at the start
+  // add a button to continue and exit the modal which is activated
+  // only when there's alteast one valid api key
+  // const [showApiKeyModal, setShowApiKeyModal] = useState<boolean>(
+  //   isValidAPIKey(openAiApiKey, "oai") || isValidAPIKey(huggingFaceApiKey, "hf")
+  //     ? false
+  //     : true
+  // );
 
   const [availableModels, setAvailableModels] = useState<string[] | null>(null);
 
-  // modelsLoadCounter lets us discard the results of the requests if a concurrent newer one was made.
-  const modelsLoadCounter = useRef(0);
   useEffect(() => {
-    if (isValidAPIKey(apiKey)) {
-      const modelsLoadIndex = modelsLoadCounter.current + 1;
-      modelsLoadCounter.current = modelsLoadIndex;
-
-      setAvailableModels(null);
-
-      (async () => {
-        let modelList: string[] = [];
-        try {
-          modelList = await getAvailableChatModels(apiKey!);
-        } catch (e) {
-          toast({
-            title: "Failed to load model list!",
-            status: "error",
-            ...TOAST_CONFIG,
-          });
-        }
-        if (modelsLoadIndex !== modelsLoadCounter.current) return;
-
-        if (modelList.length === 0) modelList.push(settings.model);
-
-        setAvailableModels(modelList);
-
-        if (!modelList.includes(settings.model)) {
-          const oldModel = settings.model;
-          const newModel = modelList.includes(DEFAULT_SETTINGS.model)
-            ? DEFAULT_SETTINGS.model
-            : modelList[0];
-
-          setSettings((settings) => ({ ...settings, model: newModel }));
-
-          toast({
-            title: `Model "${oldModel}" no longer available!`,
-            description: `Switched to "${newModel}"`,
-            status: "warning",
-            ...TOAST_CONFIG,
-          });
-        }
-      })();
+    // manually adding models to make selection experience easier
+    if (isValidOpenAiAPIKey(openAiApiKey)) {
+      setAvailableModels((prev) =>
+        prev !== null
+          ? [...new Set([...prev, "gpt-3.5-turbo", "gpt-4"])]
+          : ["gpt-3.5-turbo", "gpt-4"]
+      );
     }
-  }, [apiKey]);
+    if (isValidHuggingFaceAPIKey(huggingFaceApiKey)) {
+      setAvailableModels((prev) =>
+        prev !== null
+          ? [
+              ...new Set([
+                ...prev,
+                "meta-llama/Llama-2-70b-chat-hf",
+                "meta-llama/Llama-2-13b-chat-hf",
+                "meta-llama/Llama-2-7b-chat-hf",
+              ]),
+            ]
+          : [
+              "meta-llama/Llama-2-70b-chat-hf",
+              "meta-llama/Llama-2-13b-chat-hf",
+              "meta-llama/Llama-2-7b-chat-hf",
+            ]
+      );
+    }
+  }, [openAiApiKey, huggingFaceApiKey]);
 
   const isAnythingSaving = isSavingReactFlow || isSavingSettings;
   const isAnythingLoading = isAnythingSaving || availableModels === null;
@@ -919,6 +656,24 @@ function App() {
     // Prevent leaving the page before saving.
     if (isAnythingSaving) event.preventDefault();
   });
+
+  /*//////////////////////////////////////////////////////////////
+                      MODEL SELECTION LOGIC
+  //////////////////////////////////////////////////////////////*/
+
+  // default models
+  const [selectedModels, setSelectedModels] = useState<string[]>(() => {
+    if (isValidOpenAiAPIKey(openAiApiKey)) {
+      return ["gpt-3.5-turbo", "gpt-4"];
+    } else if (isValidHuggingFaceAPIKey(huggingFaceApiKey)) {
+      return ["meta-llama/Llama-2-70b-chat-hf", "meta-llama/Llama-2-13b-chat-hf"];
+    } else {
+      return [];
+    }
+  });
+
+  // active models
+  const [activeModels, setActiveModels] = useState<string[]>([selectedModels[0]]);
 
   /*//////////////////////////////////////////////////////////////
                         COPY MESSAGES LOGIC
@@ -1028,9 +783,8 @@ function App() {
   useHotkeys(`${modifierKey}+down`, moveToChild, HOTKEY_CONFIG);
   useHotkeys(`${modifierKey}+left`, moveToLeftSibling, HOTKEY_CONFIG);
   useHotkeys(`${modifierKey}+right`, moveToRightSibling, HOTKEY_CONFIG);
-  useHotkeys(`${modifierKey}+return`, () => submitPrompt(false), HOTKEY_CONFIG);
-  useHotkeys(`${modifierKey}+shift+return`, () => submitPrompt(true), HOTKEY_CONFIG);
-  useHotkeys(`${modifierKey}+k`, completeNextWords, HOTKEY_CONFIG);
+  useHotkeys(`${modifierKey}+return`, () => submitPrompt(), HOTKEY_CONFIG);
+  useHotkeys(`${modifierKey}+shift+return`, () => submitPrompt(), HOTKEY_CONFIG);
   // useHotkeys(`${modifierKey}+backspace`, deleteSelectedNodes, HOTKEY_CONFIG);
   useHotkeys(`${modifierKey}+shift+c`, copyMessagesToClipboard, HOTKEY_CONFIG);
 
@@ -1040,16 +794,29 @@ function App() {
 
   return (
     <>
-      {!isValidAPIKey(apiKey) && <APIKeyModal apiKey={apiKey} setApiKey={setApiKey} />}
+      {!(
+        isValidOpenAiAPIKey(openAiApiKey) || isValidHuggingFaceAPIKey(huggingFaceApiKey)
+      ) && (
+        <APIKeyModal
+          openAiApiKey={openAiApiKey}
+          setOpenAiApiKey={setOpenAiApiKey}
+          huggingFaceApiKey={huggingFaceApiKey}
+          setHuggingFaceApiKey={setHuggingFaceApiKey}
+        />
+      )}
 
       <SettingsModal
         settings={settings}
         setSettings={setSettings}
         isOpen={isSettingsModalOpen}
         onClose={onCloseSettingsModal}
-        apiKey={apiKey}
-        setApiKey={setApiKey}
+        openAiApiKey={openAiApiKey}
+        setOpenAiApiKey={setOpenAiApiKey}
+        huggingFaceApiKey={huggingFaceApiKey}
+        setHuggingFaceApiKey={setHuggingFaceApiKey}
         availableModels={availableModels}
+        selectedModels={selectedModels}
+        setSelectedModels={setSelectedModels}
       />
       <Column
         mainAxisAlignment="center"
@@ -1105,9 +872,7 @@ function App() {
                   }
                   newConnectedToSelectedNode={newConnectedToSelectedNode}
                   deleteSelectedNodes={deleteSelectedNodes}
-                  submitPrompt={() => submitPrompt(false)}
-                  regenerate={() => submitPrompt(true)}
-                  completeNextWords={completeNextWords}
+                  submitPrompt={() => submitPrompt()}
                   undo={undo}
                   redo={redo}
                   onClear={onClear}
@@ -1150,18 +915,15 @@ function App() {
                 onEdgeUpdateEnd={onEdgeUpdateEnd}
                 onConnect={onConnect}
                 nodeTypes={REACT_FLOW_NODE_TYPES}
-                // Causes clicks to also trigger auto zoom.
-                // onNodeDragStop={autoZoomIfNecessary}
                 onSelectionDragStop={autoZoomIfNecessary}
                 selectionKeyCode={null}
                 multiSelectionKeyCode="Shift"
                 panActivationKeyCode="Shift"
                 deleteKeyCode={null}
-                panOnDrag={false}
-                selectionOnDrag={true}
-                zoomOnScroll={false}
+                panOnDrag={allowPanOnDrag}
+                selectionOnDrag={!allowPanOnDrag}
+                zoomOnScroll={true}
                 zoomActivationKeyCode={null}
-                panOnScroll={true}
                 selectionMode={SelectionMode.Partial}
                 onNodeClick={(_, node) => {
                   setLastSelectedNodeId(selectedNodeId);
@@ -1176,10 +938,12 @@ function App() {
           <Box height="100%" width="100%" overflowY="scroll" p={4}>
             {selectedNodeLineage.length >= 1 ? (
               <Prompt
+                selectedModels={selectedModels}
+                activeModels={activeModels}
+                setActiveModels={setActiveModels}
                 selectedNodeId={selectedNodeId}
                 settings={settings}
                 setSettings={setSettings}
-                isGPT4={isGPT4}
                 selectNode={selectNode}
                 newConnectedToSelectedNode={newConnectedToSelectedNode}
                 lineage={selectedNodeLineage}
@@ -1193,8 +957,8 @@ function App() {
                     })
                   );
                 }}
-                submitPrompt={() => submitPrompt(false)}
-                apiKey={apiKey}
+                submitPrompt={() => submitPrompt()}
+                apiKey={openAiApiKey}
               />
             ) : (
               <Column

@@ -21,9 +21,7 @@ export enum FluxNodeType {
 export type Settings = {
   defaultPreamble: string;
   autoZoom: boolean;
-  model: string;
   temp: number;
-  n: number;
 };
 
 export enum ReactFlowNodeTypes {

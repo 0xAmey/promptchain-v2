@@ -22,8 +22,6 @@ export function NavigationBar({
   newUserNodeLinkedToANewSystemNode,
   newConnectedToSelectedNode,
   submitPrompt,
-  regenerate,
-  completeNextWords,
   undo,
   redo,
   onClear,
@@ -40,8 +38,6 @@ export function NavigationBar({
   newUserNodeLinkedToANewSystemNode: () => void;
   newConnectedToSelectedNode: (nodeType: FluxNodeType) => void;
   submitPrompt: () => void;
-  regenerate: () => void;
-  completeNextWords: () => void;
   deleteSelectedNodes: () => void;
   undo: () => void;
   redo: () => void;
@@ -120,14 +116,6 @@ export function NavigationBar({
             <MenuGroup title="GPT">
               <MenuItem command={`${modifierKeyText}⏎`} onClick={submitPrompt}>
                 Generate GPT responses
-              </MenuItem>
-
-              <MenuItem command={`⇧${modifierKeyText}⏎`} onClick={regenerate}>
-                Regenerate GPT responses
-              </MenuItem>
-
-              <MenuItem command={`${modifierKeyText}K`} onClick={completeNextWords}>
-                Complete next words
               </MenuItem>
             </MenuGroup>
           </MenuList>
