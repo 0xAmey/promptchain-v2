@@ -15,8 +15,6 @@ import {
   REACT_FLOW_NODE_TYPES,
   REACT_FLOW_LOCAL_STORAGE_KEY,
   TOAST_CONFIG,
-  UNDEFINED_RESPONSE_STRING,
-  STREAM_CANCELED_ERROR_MESSAGE,
   SAVED_CHAT_SIZE_LOCAL_STORAGE_KEY,
   OPENAI_API_KEY_LOCAL_STORAGE_KEY,
   HUGGINGFACE_API_KEY_LOCAL_STORAGE_KEY,
@@ -40,11 +38,9 @@ import {
   deleteSelectedFluxNodes,
   addUserNodeLinkedToASystemNode,
   getConnectionAllowed,
-  setFluxNodeStreamId,
 } from "../utils/fluxNode";
 import { useLocalStorage } from "../utils/lstore";
 import { mod } from "../utils/mod";
-import { getAvailableOpenAiChatModels } from "../utils/models";
 import { generateNodeId, generateStreamId } from "../utils/nodeId";
 import { messagesFromLineage, promptFromLineage } from "../utils/prompt";
 import { getQueryParam, resetURL } from "../utils/qparams";
@@ -54,7 +50,6 @@ import {
   FluxNodeType,
   HistoryItem,
   Settings,
-  CreateChatCompletionStreamResponseChoicesInner,
   ReactFlowNodeTypes,
 } from "../utils/types";
 import { Prompt } from "./Prompt";
@@ -68,8 +63,6 @@ import {
   useDisclosure,
   Spinner,
   useToast,
-  Button,
-  HStack,
   Menu,
   MenuList,
   MenuItem,
@@ -95,9 +88,7 @@ import ReactFlow, {
   updateEdge,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import { OpenAI as OpenAIStreams } from "openai-streams";
 import OpenAI from "openai";
-import { yieldStream } from "yield-stream";
 import { Analytics } from "@vercel/analytics/react";
 
 function App() {
@@ -112,20 +103,11 @@ function App() {
     y: number;
   }>({ x: 0, y: 0 });
 
-  const [rightClickMenuOption, setRightClickMenuOption] = useState<number>(0);
-
   const ref = useRef<HTMLDivElement | null>(null);
 
   const handleRightClick = (e: MouseEvent) => {
     e.preventDefault(); // Prevents the default context menu from showing up
     setRightClickMenuPosition({ x: e.clientX, y: e.clientY });
-
-    if (selectedNodeId === null) {
-      setRightClickMenuOption(0);
-    } else {
-      setRightClickMenuOption(1);
-    }
-
     setIsRightClickMenuOpen(true);
   };
 
@@ -961,7 +943,7 @@ function App() {
     },
     HOTKEY_CONFIG
   );
-  useHotkeys(`${modifierKey}+shift+backspace`, onClear, HOTKEY_CONFIG);
+  // useHotkeys(`${modifierKey}+shift+backspace`, onClear, HOTKEY_CONFIG);
 
   useHotkeys(`${modifierKey}+z`, undo, HOTKEY_CONFIG);
   useHotkeys(`${modifierKey}+shift+z`, redo, HOTKEY_CONFIG);
