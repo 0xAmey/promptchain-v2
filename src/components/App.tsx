@@ -63,7 +63,17 @@ import { SettingsModal } from "./modals/SettingsModal";
 import { BigButton } from "./utils/BigButton";
 import { NavigationBar } from "./utils/NavigationBar";
 import { CheckCircleIcon } from "@chakra-ui/icons";
-import { Box, useDisclosure, Spinner, useToast, Button, HStack } from "@chakra-ui/react";
+import {
+  Box,
+  useDisclosure,
+  Spinner,
+  useToast,
+  Button,
+  HStack,
+  Menu,
+  MenuList,
+  MenuItem,
+} from "@chakra-ui/react";
 import mixpanel from "mixpanel-browser";
 import { Resizable } from "re-resizable";
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -90,6 +100,48 @@ import { yieldStream } from "yield-stream";
 
 function App() {
   const toast = useToast();
+
+  /*//////////////////////////////////////////////////////////////
+                      CUSTOM RIGHT CLICK MENU
+  //////////////////////////////////////////////////////////////*/
+  const [isRightClickMenuOpen, setIsRightClickMenuOpen] = useState(false);
+  const [rightClickMenuPosition, setRightClickMenuPosition] = useState<{
+    x: number;
+    y: number;
+  }>({ x: 0, y: 0 });
+
+  const [rightClickMenuOption, setRightClickMenuOption] = useState<number>(0);
+
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  const handleRightClick = (e: MouseEvent) => {
+    e.preventDefault(); // Prevents the default context menu from showing up
+    setRightClickMenuPosition({ x: e.clientX, y: e.clientY });
+
+    if (selectedNodeId === null) {
+      setRightClickMenuOption(0);
+    } else {
+      setRightClickMenuOption(1);
+    }
+
+    setIsRightClickMenuOpen(true);
+  };
+
+  const closeMenu = () => {
+    setIsRightClickMenuOpen(false);
+  };
+
+  useEffect(() => {
+    const currentRef = ref.current;
+    if (currentRef) {
+      currentRef.addEventListener("contextmenu", handleRightClick);
+    }
+    return () => {
+      if (currentRef) {
+        currentRef.removeEventListener("contextmenu", handleRightClick);
+      }
+    };
+  }, []);
 
   /*//////////////////////////////////////////////////////////////
                  ALLOW DRAG ON SPACEBAR HOLD LOGIC
@@ -966,6 +1018,55 @@ function App() {
 
   return (
     <>
+      {isRightClickMenuOpen && (
+        <Menu isOpen={isRightClickMenuOpen} onClose={closeMenu} closeOnSelect>
+          <MenuList
+            position="absolute"
+            top={`${rightClickMenuPosition.y}px`}
+            left={`${rightClickMenuPosition.x}px`}
+          >
+            <MenuItem
+              onClick={() => {
+                setIsRightClickMenuOpen(false);
+                newUserNodeLinkedToANewSystemNode();
+              }}
+              borderBottom={"1px"}
+            >
+              Create a new conversation tree
+            </MenuItem>
+            {selectedNodeId !== null &&
+              getFluxNode(nodes, selectedNodeId) !== undefined &&
+              getFluxNode(nodes, selectedNodeId)?.selected === true && (
+                <MenuItem
+                  onClick={() => {
+                    setIsRightClickMenuOpen(false);
+                    deleteSelectedNodes();
+                  }}
+                  borderBottom={"1px"}
+                  paddingTop={"10px"}
+                  paddingBottom={"10px"}
+                >
+                  Delete Selected Node(s)
+                </MenuItem>
+              )}
+            {selectedNodeId !== null &&
+              getFluxNode(nodes, selectedNodeId) !== undefined &&
+              getFluxNode(nodes, selectedNodeId)?.selected === true &&
+              getFluxNode(nodes, selectedNodeId)?.data.fluxNodeType !==
+                FluxNodeType.User && (
+                <MenuItem
+                  onClick={() => {
+                    setIsRightClickMenuOpen(false);
+                    newConnectedToSelectedNode(FluxNodeType.User);
+                  }}
+                >
+                  Create User Node
+                </MenuItem>
+              )}
+          </MenuList>
+        </Menu>
+      )}
+
       {!(
         isValidOpenAiAPIKey(openAiApiKey) || isValidHuggingFaceAPIKey(huggingFaceApiKey)
       ) && (
@@ -1073,6 +1174,7 @@ function App() {
               </Row>
 
               <ReactFlow
+                ref={ref}
                 proOptions={{ hideAttribution: true }}
                 nodes={nodes}
                 maxZoom={1.5}
@@ -1101,6 +1203,7 @@ function App() {
                 onNodeClick={(_, node) => {
                   setLastSelectedNodeId(selectedNodeId);
                   setSelectedNodeId(node.id);
+                  if (isRightClickMenuOpen) setIsRightClickMenuOpen(false);
                 }}
               >
                 <Background />
