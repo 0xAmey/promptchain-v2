@@ -145,10 +145,7 @@ export function NavigationBar({
             <MenuDivider />
 
             <MenuGroup title="Delete">
-              <MenuItem
-                command={`⇧${modifierKeyText} Del`}
-                onClick={deleteSelectedNodes}
-              >
+              <MenuItem command={`⇧${modifierKeyText} Del`} onClick={deleteSelectedNodes}>
                 Delete selected node(s)
               </MenuItem>
             </MenuGroup>
@@ -193,19 +190,6 @@ export function NavigationBar({
                 Down to child node
               </MenuItem>
             </MenuGroup>
-
-            <MenuDivider />
-
-            <MenuGroup title="Siblings">
-              <MenuItem command={`${modifierKeyText}←`} onClick={moveToLeftSibling}>
-                Left to sibling node
-              </MenuItem>
-              <MenuItem command={`${modifierKeyText}→`} onClick={moveToRightSibling}>
-                Right to sibling node
-              </MenuItem>
-            </MenuGroup>
-
-            <MenuDivider />
 
             <MenuGroup title="Global">
               <MenuItem command={`${modifierKeyText}.`} onClick={autoZoom}>
