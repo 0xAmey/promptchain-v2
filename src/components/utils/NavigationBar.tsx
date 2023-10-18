@@ -113,9 +113,9 @@ export function NavigationBar({
 
             <MenuDivider />
 
-            <MenuGroup title="GPT">
+            <MenuGroup title="Model">
               <MenuItem command={`${modifierKeyText}⏎`} onClick={submitPrompt}>
-                Generate GPT responses
+                Generate model responses
               </MenuItem>
             </MenuGroup>
           </MenuList>
@@ -145,12 +145,11 @@ export function NavigationBar({
             <MenuDivider />
 
             <MenuGroup title="Delete">
-              <MenuItem command={`${modifierKeyText}⌫`} onClick={deleteSelectedNodes}>
+              <MenuItem
+                command={`⇧${modifierKeyText} Del`}
+                onClick={deleteSelectedNodes}
+              >
                 Delete selected node(s)
-              </MenuItem>
-
-              <MenuItem command={`⇧${modifierKeyText}⌫`} onClick={onClear}>
-                Delete everything
               </MenuItem>
             </MenuGroup>
 

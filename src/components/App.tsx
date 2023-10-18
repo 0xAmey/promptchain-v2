@@ -73,6 +73,7 @@ import {
   Menu,
   MenuList,
   MenuItem,
+  MenuDivider,
 } from "@chakra-ui/react";
 import mixpanel from "mixpanel-browser";
 import { Resizable } from "re-resizable";
@@ -297,8 +298,7 @@ function App() {
   };
 
   const trackedAutoZoom = () => {
-    // autoZoom();
-
+    autoZoom();
     if (MIXPANEL_TOKEN) mixpanel.track("Zoomed out and centered");
   };
 
@@ -396,6 +396,7 @@ function App() {
           // such that the middle response is right below the current node.
           // Note that node x y coords are the top left corner of the node,
           // so we need to offset by at the width of the node (150px).
+          model: model,
           x:
             (currentNodeChildren.length > 0
               ? // If there are already children we want to put the
@@ -1026,43 +1027,74 @@ function App() {
             left={`${rightClickMenuPosition.x}px`}
           >
             <MenuItem
+            minWidth={"230px"}
               onClick={() => {
                 setIsRightClickMenuOpen(false);
                 newUserNodeLinkedToANewSystemNode();
               }}
-              borderBottom={"1px"}
             >
-              Create a new conversation tree
+              Create new conversation tree
             </MenuItem>
+            <MenuDivider />
+
             {selectedNodeId !== null &&
               getFluxNode(nodes, selectedNodeId) !== undefined &&
               getFluxNode(nodes, selectedNodeId)?.selected === true && (
-                <MenuItem
-                  onClick={() => {
-                    setIsRightClickMenuOpen(false);
-                    deleteSelectedNodes();
-                  }}
-                  borderBottom={"1px"}
-                  paddingTop={"10px"}
-                  paddingBottom={"10px"}
-                >
-                  Delete Selected Node(s)
-                </MenuItem>
+                <>
+                  <MenuItem
+                    onClick={() => {
+                      setIsRightClickMenuOpen(false);
+                      deleteSelectedNodes();
+                    }}
+                  >
+                    Delete Selected Node(s)
+                  </MenuItem>
+                  <MenuDivider />
+                </>
               )}
+
             {selectedNodeId !== null &&
               getFluxNode(nodes, selectedNodeId) !== undefined &&
               getFluxNode(nodes, selectedNodeId)?.selected === true &&
               getFluxNode(nodes, selectedNodeId)?.data.fluxNodeType !==
                 FluxNodeType.User && (
-                <MenuItem
-                  onClick={() => {
-                    setIsRightClickMenuOpen(false);
-                    newConnectedToSelectedNode(FluxNodeType.User);
-                  }}
-                >
-                  Create User Node
-                </MenuItem>
+                <>
+                  <MenuItem
+                    onClick={() => {
+                      setIsRightClickMenuOpen(false);
+                      newConnectedToSelectedNode(FluxNodeType.User);
+                    }}
+                  >
+                    Create User Node
+                  </MenuItem>
+                  <MenuDivider />
+                </>
               )}
+
+            {selectedNodeId !== null &&
+              getFluxNode(nodes, selectedNodeId) !== undefined &&
+              getFluxNode(nodes, selectedNodeId)?.selected === true && (
+                <>
+                  <MenuItem
+                    onClick={() => {
+                      setIsRightClickMenuOpen(false);
+                      showRenameInput();
+                    }}
+                  >
+                    Rename Node
+                  </MenuItem>
+                  <MenuDivider />
+                </>
+              )}
+
+            <MenuItem
+              onClick={() => {
+                setIsRightClickMenuOpen(false);
+                trackedAutoZoom();
+              }}
+            >
+              Fit View
+            </MenuItem>
           </MenuList>
         </Menu>
       )}

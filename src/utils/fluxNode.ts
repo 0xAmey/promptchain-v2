@@ -17,6 +17,7 @@ import { formatAutoLabel } from "./prompt";
 
 export function newFluxNode({
   id,
+  model,
   x,
   y,
   fluxNodeType,
@@ -24,6 +25,7 @@ export function newFluxNode({
   streamId,
 }: {
   id?: string;
+  model?: string;
   x: number;
   y: number;
   fluxNodeType: FluxNodeType;
