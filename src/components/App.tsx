@@ -427,57 +427,33 @@ function App() {
       );
 
       if (model === "gpt-3.5-turbo" || model === "gpt-4") {
+        const openai = new OpenAI({
+          apiKey: openAiApiKey as string,
+          dangerouslyAllowBrowser: true,
+        });
+
         (async () => {
-          const stream = await OpenAIStreams(
-            "chat",
-            {
-              model,
-              n: 1,
-              temperature: temp,
-              messages: messagesFromLineage(parentNodeLineage, settings),
-            },
-            { apiKey: openAiApiKey!, mode: "raw" }
-          );
-          const DECODER = new TextDecoder();
-          const abortController = new AbortController();
-          for await (const chunk of yieldStream(stream)) {
-            if (abortController.signal.aborted) break;
-            try {
-              const decoded = JSON.parse(DECODER.decode(chunk));
-              if (decoded.choices === undefined)
-                throw new Error(
-                  "No choices in response. Decoded response: " + JSON.stringify(decoded)
-                );
-              const choice: CreateChatCompletionStreamResponseChoicesInner =
-                decoded.choices[0];
-              if (choice.index === undefined)
-                throw new Error(
-                  "No index in choice. Decoded choice: " + JSON.stringify(choice)
-                );
-              // The ChatGPT API will start by returning a
-              // choice with only a role delta and no content.
-              if (choice.delta?.content) {
-                setNodes((newerNodes) => {
-                  try {
-                    return appendTextToFluxNodeAsGPT(newerNodes, {
-                      id: id,
-                      text: choice.delta?.content ?? UNDEFINED_RESPONSE_STRING,
-                      streamId: streamId, // This will cause a throw if the streamId has changed.
-                    });
-                  } catch (e: any) {
-                    // If the stream id does not match,
-                    // it is stale and we should abort.
-                    abortController.abort(e.message);
-                    return newerNodes;
-                  }
+          const res = await openai.chat.completions.create({
+            model: model,
+            messages: messagesFromLineage(parentNodeLineage, settings),
+            stream: true,
+          });
+
+          let text: string = "";
+          for await (const part of res) {
+            setNodes((newerNodes) => {
+              try {
+                return appendTextToFluxNodeAsGPT(newerNodes, {
+                  id: id,
+                  text: part.choices[0]?.delta?.content ?? UNDEFINED_RESPONSE_STRING,
+                  streamId: streamId, // This will cause a throw if the streamId has changed.
                 });
+              } catch (e: any) {
+                // If the stream id does not match,
+                // it is stale and we should abort.
+                return newerNodes;
               }
-              // We cannot return within the loop, and we do
-              // not want to execute the code below, so we break.
-              if (abortController.signal.aborted) break;
-            } catch (err) {
-              console.error(err);
-            }
+            });
           }
         })().catch((err) =>
           toast({

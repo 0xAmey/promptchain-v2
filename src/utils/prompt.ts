@@ -1,7 +1,7 @@
 import { FluxNodeData, FluxNodeType, Settings } from "./types";
-import { ChatCompletionRequestMessage } from "openai-streams";
 import { MAX_AUTOLABEL_CHARS } from "./constants";
 import { Node } from "reactflow";
+import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
 export function messagesFromLineageForHuggingFaceTextGeneration(
   lineage: Node<FluxNodeData>[]
@@ -56,8 +56,8 @@ export function messagesFromLineageForHuggingFaceConversational(
 export function messagesFromLineage(
   lineage: Node<FluxNodeData>[],
   settings: Settings
-): ChatCompletionRequestMessage[] {
-  const messages: ChatCompletionRequestMessage[] = [];
+): ChatCompletionMessageParam[] {
+  const messages: ChatCompletionMessageParam[] = [];
 
   // Iterate backwards.
   for (let i = lineage.length - 1; i >= 0; i--) {
