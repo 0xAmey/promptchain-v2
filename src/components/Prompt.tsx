@@ -124,7 +124,7 @@ export function Prompt({
       position={"relative"}
       paddingLeft={"15px"}
       paddingRight={"15px"}
-      paddingBottom={"50px"}
+      paddingBottom={"20px"}
     >
       <ButtonGrid
         selectedModels={selectedModels}

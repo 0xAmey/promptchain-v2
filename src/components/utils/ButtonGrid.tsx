@@ -26,7 +26,6 @@ const ButtonGrid = ({
       // transform="translateX(-50%)"
       minWidth={"100%"}
       paddingTop={"20px"}
-      paddingBottom={"10px"}
       zIndex={"sticky"}
       backgroundColor={"white"}
     >
