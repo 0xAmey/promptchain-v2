@@ -2,17 +2,23 @@ import { UseToastOptions } from "@chakra-ui/toast";
 
 import { Options } from "react-hotkeys-hook";
 
-import { NodeProps } from "reactflow";
-
-import { ReactFlowNodeTypes, Settings } from "./types";
+import { ReactFlowNodeTypes, Settings, FluxNodeData } from "./types";
 
 import { LabelUpdaterNode } from "../components/nodes/LabelUpdaterNode";
+import { ModelNode } from "../components/nodes/ModelNode";
+
+type NodeProps<T = {}> = T & {
+  id: string;
+  data: FluxNodeData;
+  isConnectable: boolean;
+};
 
 export const REACT_FLOW_NODE_TYPES: Record<
   ReactFlowNodeTypes,
   (args: NodeProps) => JSX.Element
 > = {
   LabelUpdater: LabelUpdaterNode,
+  Model: ModelNode,
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -56,4 +62,4 @@ export const STREAM_CANCELED_ERROR_MESSAGE = "STREAM_CANCELED";
 export const STALE_STREAM_ERROR_MESSAGE = "STALE_STREAM";
 
 // Magic number to almost always make auto-label text stay in two lines.
-export const MAX_AUTOLABEL_CHARS = 32;
+export const MAX_AUTOLABEL_CHARS = 25;

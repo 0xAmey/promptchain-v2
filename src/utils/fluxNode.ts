@@ -17,6 +17,7 @@ import { formatAutoLabel } from "./prompt";
 
 export function newFluxNode({
   id,
+  type,
   model,
   x,
   y,
@@ -25,6 +26,7 @@ export function newFluxNode({
   streamId,
 }: {
   id?: string;
+  type?: ReactFlowNodeTypes;
   model?: string;
   x: number;
   y: number;
@@ -34,6 +36,7 @@ export function newFluxNode({
 }): Node<FluxNodeData> {
   return {
     id: id ?? generateNodeId(),
+    type: type,
     position: { x, y },
     style: {
       background: getFluxNodeTypeColor(fluxNodeType),
@@ -42,6 +45,7 @@ export function newFluxNode({
       label: displayNameFromFluxNodeType(fluxNodeType),
       fluxNodeType,
       text,
+      model,
       streamId,
     },
   };

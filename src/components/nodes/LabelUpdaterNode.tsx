@@ -8,10 +8,12 @@ import { useEffect, useState } from "react";
 import { Handle, Position, useReactFlow } from "reactflow";
 
 export function LabelUpdaterNode({
+  model,
   id,
   data,
   isConnectable,
 }: {
+  model?: string;
   id: string;
   data: FluxNodeData;
   isConnectable: boolean;

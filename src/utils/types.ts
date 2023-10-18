@@ -5,6 +5,7 @@ export type ChatCompletionResponseMessage = ["role", "content"];
 export type FluxNodeData = {
   label: string;
   fluxNodeType: FluxNodeType;
+  model?: string;
   text: string;
   streamId?: string;
   hasCustomlabel?: boolean;
@@ -28,6 +29,7 @@ export type Settings = {
 
 export enum ReactFlowNodeTypes {
   LabelUpdater = "LabelUpdater",
+  Model = "Model",
 }
 
 // The stream response is weird and has a delta instead of message field.

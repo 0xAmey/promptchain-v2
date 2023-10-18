@@ -240,7 +240,7 @@ function App() {
                         CORE REACT FLOW LOGIC
   //////////////////////////////////////////////////////////////*/
 
-  const { setViewport, fitView } = useReactFlow();
+  const { setViewport, fitView, getZoom } = useReactFlow();
 
   const [reactFlow, setReactFlow] = useState<ReactFlowInstance | null>(null);
 
@@ -401,6 +401,7 @@ function App() {
       newNodes.push(
         newFluxNode({
           id,
+          type: ReactFlowNodeTypes.Model,
           // Position it 50px below the current node, offset
           // horizontally according to the number of responses
           // such that the middle response is right below the current node.
@@ -439,13 +440,12 @@ function App() {
             stream: true,
           });
 
-          let text: string = "";
           for await (const part of res) {
             setNodes((newerNodes) => {
               try {
                 return appendTextToFluxNodeAsGPT(newerNodes, {
                   id: id,
-                  text: part.choices[0]?.delta?.content ?? UNDEFINED_RESPONSE_STRING,
+                  text: part.choices[0]?.delta?.content ?? "",
                   streamId: streamId, // This will cause a throw if the streamId has changed.
                 });
               } catch (e: any) {
@@ -486,7 +486,7 @@ function App() {
               try {
                 return appendTextToFluxNodeAsGPT(newerNodes, {
                   id: id,
-                  text: part.choices[0]?.delta?.content ?? UNDEFINED_RESPONSE_STRING,
+                  text: part.choices[0]?.delta?.content ?? "",
                   streamId: streamId, // This will cause a throw if the streamId has changed.
                 });
               } catch (e: any) {
@@ -887,6 +887,10 @@ function App() {
   /*//////////////////////////////////////////////////////////////
                          RENAME NODE LOGIC
   //////////////////////////////////////////////////////////////*/
+
+  if (selectedNodeId !== null) {
+    console.log(getFluxNode(nodes, selectedNodeId)?.type);
+  }
 
   const showRenameInput = () => {
     const selectedNode = nodes.find((node) => node.selected);
