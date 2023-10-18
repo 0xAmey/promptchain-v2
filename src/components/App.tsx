@@ -98,6 +98,7 @@ import "reactflow/dist/style.css";
 import { OpenAI as OpenAIStreams } from "openai-streams";
 import OpenAI from "openai";
 import { yieldStream } from "yield-stream";
+import { Analytics } from "@vercel/analytics/react";
 
 function App() {
   const toast = useToast();
@@ -515,7 +516,6 @@ function App() {
               } catch (e: any) {
                 // If the stream id does not match,
                 // it is stale and we should abort.
-                console.log(e);
                 return newerNodes;
               }
             });
@@ -1292,6 +1292,7 @@ function App() {
           </Box>
         </Row>
       </Column>
+      <Analytics />
     </>
   );
 }

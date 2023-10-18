@@ -50,8 +50,6 @@ export function messagesFromLineageForHuggingFaceConversational(
     past_user_inputs: past_user_inputs,
     text: text,
   };
-  console.log(messages);
-
   return messages;
 }
 

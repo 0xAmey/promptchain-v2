@@ -53,8 +53,6 @@ export default function ModalCheckboxDropdown({
     });
   };
 
-  console.log(selectedModels);
-
   return (
     <>
       <Button
