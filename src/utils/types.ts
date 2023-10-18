@@ -20,6 +20,8 @@ export enum FluxNodeType {
 
 export type Settings = {
   defaultPreamble: string;
+  activeModels: string[];
+  selectedModels: string[];
   autoZoom: boolean;
   temp: number;
 };

@@ -17,6 +17,8 @@ export const REACT_FLOW_NODE_TYPES: Record<
 
 export const DEFAULT_SETTINGS: Settings = {
   temp: 1.2,
+  activeModels: ["gpt-3.5-turbo"],
+  selectedModels: ["gpt-3.5-turbo"],
   autoZoom: true,
   defaultPreamble: `You are a helpful AI assistant`,
 };

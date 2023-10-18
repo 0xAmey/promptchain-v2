@@ -1,21 +1,31 @@
 import React from "react";
 import { Box, Button, Flex } from "@chakra-ui/react";
-
+import { Settings } from "../../utils/types";
+import { useDebouncedEffect } from "../../utils/debounce";
+import { MODEL_SETTINGS_LOCAL_STORAGE_KEY } from "../../utils/constants";
 const ButtonGrid = ({
   selectedModels,
   activeModels,
   setActiveModels,
+  settings,
+  setSettings,
 }: {
   selectedModels: string[];
   activeModels: string[];
   setActiveModels: React.Dispatch<React.SetStateAction<string[]>>;
+  settings: Settings;
+  setSettings: (update: (prevSettings: Settings) => Settings) => void;
 }) => {
   const handleButtonClick = (value: string) => {
-    if (activeModels.includes(value)) {
-      setActiveModels((prev) => prev.filter((curr) => curr !== value));
-    } else {
-      setActiveModels((prev) => [...prev, value]);
-    }
+    const newActiveModels = activeModels.includes(value)
+      ? activeModels.filter((curr) => curr !== value)
+      : [...activeModels, value];
+
+    setActiveModels(newActiveModels);
+
+    setSettings((prev) => {
+      return { ...prev, activeModels: newActiveModels };
+    });
   };
 
   return (

@@ -35,19 +35,21 @@ export const SettingsModal = memo(function SettingsModal({
   selectedModels,
   setSelectedModels,
   setActiveModels,
+  activeModels,
 }: {
   isOpen: boolean;
   onClose: () => void;
   settings: Settings;
-  setSettings: (settings: Settings) => void;
+  setSettings: (update: (prevSettings: Settings) => Settings) => void;
   openAiApiKey: string | null;
   setOpenAiApiKey: (openAiApiKey: string) => void;
   huggingFaceApiKey: string | null;
   setHuggingFaceApiKey: (huggingFaceApiKey: string) => void;
   availableModels: string[] | null;
   selectedModels: string[];
-  setSelectedModels: (selectedModels: string[]) => void;
+  setSelectedModels: React.Dispatch<React.SetStateAction<string[]>>;
   setActiveModels: React.Dispatch<React.SetStateAction<string[]>>;
+  activeModels: string[];
 }) {
   const reset = () => {
     if (
@@ -55,7 +57,7 @@ export const SettingsModal = memo(function SettingsModal({
         "Are you sure you want to reset your settings to default? This cannot be undone!"
       )
     ) {
-      setSettings(DEFAULT_SETTINGS);
+      setSettings((prev) => DEFAULT_SETTINGS);
 
       if (MIXPANEL_TOKEN) mixpanel.track("Restored defaults");
     }
@@ -93,10 +95,13 @@ export const SettingsModal = memo(function SettingsModal({
           {/* CHECKBOX DROPDOWN */}
 
           <ModalCheckboxDropdown
+            settings={settings}
             setActiveModels={setActiveModels}
             availableModels={availableModels}
             selectedModels={selectedModels}
             setSelectedModels={setSelectedModels}
+            setSettings={setSettings}
+            activeModels={activeModels}
           />
 
           <OpenAiAPIKeyInput
@@ -118,7 +123,9 @@ export const SettingsModal = memo(function SettingsModal({
             isChecked={settings.autoZoom}
             colorScheme="gray"
             onChange={(event: ChangeEvent<HTMLInputElement>) => {
-              setSettings({ ...settings, autoZoom: event.target.checked });
+              setSettings((prev) => {
+                return { ...settings, autoZoom: event.target.checked };
+              });
 
               if (MIXPANEL_TOKEN) mixpanel.track("Changed auto zoom");
             }}

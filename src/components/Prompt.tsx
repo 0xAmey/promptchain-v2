@@ -40,7 +40,7 @@ export function Prompt({
   selectNode: (id: string) => void;
   newConnectedToSelectedNode: (type: FluxNodeType) => void;
   settings: Settings;
-  setSettings: (settings: Settings) => void;
+  setSettings: (update: (prevSettings: Settings) => Settings) => void;
   apiKey: string | null;
 }) {
   const { setNodes } = useReactFlow();
@@ -127,6 +127,8 @@ export function Prompt({
       paddingBottom={"20px"}
     >
       <ButtonGrid
+        settings={settings}
+        setSettings={setSettings}
         selectedModels={selectedModels}
         activeModels={activeModels}
         setActiveModels={setActiveModels}

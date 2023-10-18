@@ -325,6 +325,15 @@ function App() {
 
       const flow: ReactFlowJsonObject = rawFlow ? JSON.parse(rawFlow) : null;
 
+      const rawSettings = localStorage.getItem(MODEL_SETTINGS_LOCAL_STORAGE_KEY);
+      const settings: Settings = rawSettings ? JSON.parse(rawSettings) : null;
+
+      if (settings !== null) {
+        setSettings(settings);
+      } else {
+        setSettings(DEFAULT_SETTINGS);
+      }
+
       // Get the content of the newTreeWith query param.
       const content = getQueryParam(NEW_TREE_CONTENT_QUERY_PARAM);
 
@@ -870,18 +879,10 @@ function App() {
   //////////////////////////////////////////////////////////////*/
 
   // default models
-  const [selectedModels, setSelectedModels] = useState<string[]>(() => {
-    if (isValidHuggingFaceAPIKey(huggingFaceApiKey)) {
-      return ["meta-llama/Llama-2-13b-chat", "meta-llama/Llama-2-70b-chat"];
-    } else if (isValidOpenAiAPIKey(openAiApiKey)) {
-      return ["gpt-3.5-turbo", "gpt-4"];
-    } else {
-      return [];
-    }
-  });
+  const [selectedModels, setSelectedModels] = useState<string[]>(settings.selectedModels);
 
   // active models
-  const [activeModels, setActiveModels] = useState<string[]>([selectedModels[0]]);
+  const [activeModels, setActiveModels] = useState<string[]>(settings.activeModels);
 
   /*//////////////////////////////////////////////////////////////
                         COPY MESSAGES LOGIC
@@ -1027,7 +1028,7 @@ function App() {
             left={`${rightClickMenuPosition.x}px`}
           >
             <MenuItem
-            minWidth={"230px"}
+              minWidth={"230px"}
               onClick={() => {
                 setIsRightClickMenuOpen(false);
                 newUserNodeLinkedToANewSystemNode();
@@ -1111,6 +1112,7 @@ function App() {
       )}
 
       <SettingsModal
+        activeModels={activeModels}
         settings={settings}
         setSettings={setSettings}
         isOpen={isSettingsModalOpen}

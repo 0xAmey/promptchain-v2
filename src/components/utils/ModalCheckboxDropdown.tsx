@@ -10,17 +10,24 @@ import {
   ModalCloseButton,
 } from "@chakra-ui/react";
 import { ChevronDownIcon, ChevronUpIcon } from "@chakra-ui/icons";
+import { Settings } from "../../utils/types";
 
 export default function ModalCheckboxDropdown({
   availableModels,
   selectedModels,
   setActiveModels,
   setSelectedModels,
+  setSettings,
+  activeModels,
+  settings,
 }: {
-  availableModels: string[];
+  availableModels: string[] | null;
   selectedModels: string[];
   setActiveModels: React.Dispatch<React.SetStateAction<string[]>>;
   setSelectedModels: React.Dispatch<React.SetStateAction<string[]>>;
+  setSettings: (update: (prevSettings: Settings) => Settings) => void;
+  activeModels: string[];
+  settings: Settings;
 }) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -29,15 +36,24 @@ export default function ModalCheckboxDropdown({
   };
 
   const handleCheckboxChange = (value: string) => {
-    setActiveModels((prev) => prev.filter((item) => item != value));
-    setSelectedModels((prev) => {
-      if (prev.includes(value)) {
-        return prev.filter((item: string) => item !== value);
-      } else {
-        return [...prev, value];
-      }
+    const newActiveModels = activeModels.filter((item) => item !== value);
+    const newSelectedModels = selectedModels.includes(value)
+      ? selectedModels.filter((item: string) => item !== value)
+      : [...selectedModels, value];
+
+    setActiveModels(newActiveModels);
+    setSelectedModels(newSelectedModels);
+
+    setSettings((prev) => {
+      return {
+        ...prev,
+        activeModels: newActiveModels,
+        selectedModels: newSelectedModels,
+      };
     });
   };
+
+  console.log(selectedModels);
 
   return (
     <>
@@ -54,15 +70,16 @@ export default function ModalCheckboxDropdown({
           <ModalCloseButton />
           <ModalBody>
             <VStack align="start" spacing={2} p={4}>
-              {availableModels.map((option) => (
-                <Checkbox
-                  key={option}
-                  isChecked={selectedModels.includes(option)}
-                  onChange={() => handleCheckboxChange(option)}
-                >
-                  {option}
-                </Checkbox>
-              ))}
+              {availableModels !== null &&
+                availableModels.map((option) => (
+                  <Checkbox
+                    key={option}
+                    isChecked={selectedModels.includes(option)}
+                    onChange={() => handleCheckboxChange(option)}
+                  >
+                    {option}
+                  </Checkbox>
+                ))}
             </VStack>
           </ModalBody>
         </ModalContent>
