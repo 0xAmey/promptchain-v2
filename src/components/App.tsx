@@ -817,9 +817,18 @@ function App() {
                 ...prev,
                 "meta-llama/Llama-2-70b-chat",
                 "meta-llama/Llama-2-13b-chat",
+                "meta-llama/codellama-34b-instruct",
+                "anthropic/claude-instant-v1",
+                "anthropic/claude-2",
               ]),
             ]
-          : ["meta-llama/Llama-2-70b-chat", "meta-llama/Llama-2-13b-chat"]
+          : [
+              "meta-llama/Llama-2-70b-chat",
+              "meta-llama/Llama-2-13b-chat",
+              "meta-llama/codellama-34b-instruct",
+              "anthropic/claude-instant-v1",
+              "anthropic/claude-2",
+            ]
       );
     }
   }, [openAiApiKey, huggingFaceApiKey]);
@@ -1231,6 +1240,7 @@ function App() {
                 }}
                 submitPrompt={() => submitPrompt()}
                 apiKey={openAiApiKey}
+                nodes={nodes}
               />
             ) : (
               <Column

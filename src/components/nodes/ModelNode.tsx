@@ -8,6 +8,7 @@ import { formatAutoLabel } from "../../utils/prompt";
 import { useReactFlow } from "reactflow";
 import { useState, useEffect } from "react";
 import { useDebouncedEffect } from "../../utils/debounce";
+import { shortenModelName } from "../../utils/shortenModelName";
 
 export function ModelNode({
   model,
@@ -20,10 +21,10 @@ export function ModelNode({
   data: FluxNodeData;
   isConnectable: boolean;
 }) {
+  const [modelName, setModelName] = useState(shortenModelName(data.model));
   const { getZoom } = useReactFlow();
   const [currentZoom, setCurrentZoom] = useState(getZoom());
-  const keepSettingZoom = () => setCurrentZoom(getZoom());
-  useDebouncedEffect(keepSettingZoom, 1000, [getZoom()]);
+
   return (
     <Box
       width="150px"
@@ -39,11 +40,7 @@ export function ModelNode({
       </Box>
 
       <NodeToolbar isVisible={true} position={Position.Bottom}>
-        <Text fontSize={`${60 / Math.pow(5, 1 / currentZoom)}px`}>
-          {data.model?.includes("meta-llama/")
-            ? data.model.replace("meta-llama/", "")
-            : data.model}
-        </Text>
+        <Text fontSize={`${90 / Math.pow(5, 1 / currentZoom)}px`}>{modelName}</Text>
       </NodeToolbar>
 
       <Handle type="source" position={Position.Bottom} isConnectable={isConnectable} />

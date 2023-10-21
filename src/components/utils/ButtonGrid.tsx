@@ -3,6 +3,7 @@ import { Box, Button, Flex } from "@chakra-ui/react";
 import { Settings } from "../../utils/types";
 import { useDebouncedEffect } from "../../utils/debounce";
 import { MODEL_SETTINGS_LOCAL_STORAGE_KEY } from "../../utils/constants";
+import { shortenModelName } from "../../utils/shortenModelName";
 const ButtonGrid = ({
   selectedModels,
   activeModels,
@@ -52,7 +53,7 @@ const ButtonGrid = ({
               mx={2}
               mb={2}
             >
-              {text.includes("meta-llama") ? text.replace("meta-llama/", "") : text}
+              {shortenModelName(text)}
             </Button>
           ))}
         </Flex>
