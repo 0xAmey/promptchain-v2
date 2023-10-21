@@ -24,7 +24,8 @@ export function ModelNode({
   const [modelName, setModelName] = useState(shortenModelName(data.model));
   const { getZoom } = useReactFlow();
   const [currentZoom, setCurrentZoom] = useState(getZoom());
-
+  const keepSettingZoom = () => setCurrentZoom(getZoom());
+  useDebouncedEffect(keepSettingZoom, 1000, [getZoom()]);
   return (
     <Box
       width="150px"
