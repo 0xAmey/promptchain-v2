@@ -4,6 +4,8 @@ export const shortenModelName = (modelName: string | undefined) => {
     return modelName.replace("meta-llama/", "");
   } else if (modelName.includes("anthropic/")) {
     return modelName.replace("anthropic/", "");
+  } else if (modelName.includes("mistralai/")) {
+    return modelName.replace("mistralai/", "");
   } else {
     return modelName;
   }

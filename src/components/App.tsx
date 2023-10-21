@@ -820,6 +820,7 @@ function App() {
                 "meta-llama/codellama-34b-instruct",
                 "anthropic/claude-instant-v1",
                 "anthropic/claude-2",
+                "mistralai/mistral-7b-instruct",
               ]),
             ]
           : [
@@ -828,6 +829,7 @@ function App() {
               "meta-llama/codellama-34b-instruct",
               "anthropic/claude-instant-v1",
               "anthropic/claude-2",
+              "mistralai/mistral-7b-instruct",
             ]
       );
     }
