@@ -1,6 +1,14 @@
 import mixpanel from "mixpanel-browser";
 
-import { Modal, ModalOverlay, ModalContent, Link, Text } from "@chakra-ui/react";
+import {
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  Link,
+  Text,
+  LinkOverlay,
+  color,
+} from "@chakra-ui/react";
 
 import { MIXPANEL_TOKEN } from "../../main";
 
@@ -61,7 +69,15 @@ export function APIKeyModal({
             setApiKey={setHuggingFaceApiKeyTracked}
           />
           <Text mt={5} width="80%" textAlign="center" fontSize="md">
-            Your API Keys will <u>never</u> leave your browser's local storage.
+            Your API Keys will <b>never</b> leave your browser's local storage. Check for
+            yourself{" "}
+            <Link
+              href={"https://github.com/ameywtf/promptchain-v2"}
+              color={"#2E8251"}
+              isExternal={true}
+            >
+              <u>here</u>
+            </Link>
           </Text>
         </Column>
       </ModalContent>
