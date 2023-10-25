@@ -506,7 +506,7 @@ function App() {
             source: parentNode.id,
             target: childId,
             animated: false,
-            label: shortenModelName(model),
+            // label: shortenModelName(model),
           })
         );
 
