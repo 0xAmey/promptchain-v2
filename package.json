@@ -41,6 +41,7 @@
     "@types/react-dom": "^18.0.10",
     "@vitejs/plugin-react-swc": "^3.0.0",
     "typescript": "^4.9.3",
-    "vite": "^4.4.11"
+    "vite": "^4.4.11",
+    "vite-plugin-radar": "^0.9.1"
   }
 }
