@@ -21,11 +21,11 @@ export function ModelNode({
   data: FluxNodeData;
   isConnectable: boolean;
 }) {
-  const [modelName, setModelName] = useState(shortenModelName(data.model));
-  const { getZoom } = useReactFlow();
-  const [currentZoom, setCurrentZoom] = useState(getZoom());
-  const keepSettingZoom = () => setCurrentZoom(getZoom());
-  useDebouncedEffect(keepSettingZoom, 1000, [getZoom()]);
+  // const [modelName, setModelName] = useState(shortenModelName(data.model));
+  // const { getZoom } = useReactFlow();
+  // const [currentZoom, setCurrentZoom] = useState(getZoom());
+  // const keepSettingZoom = () => setCurrentZoom(getZoom());
+  // useDebouncedEffect(keepSettingZoom, 1000, [getZoom()]);
   return (
     <Box
       width="150px"
@@ -40,9 +40,9 @@ export function ModelNode({
         <Markdown text={formatAutoLabel(data.text)} />
       </Box>
 
-      <NodeToolbar isVisible={true} position={Position.Bottom}>
+      {/* <NodeToolbar isVisible={true} position={Position.Bottom}>
         <Text fontSize={`${90 / Math.pow(5, 1 / currentZoom)}px`}>{modelName}</Text>
-      </NodeToolbar>
+      </NodeToolbar> */}
 
       <Handle type="source" position={Position.Bottom} isConnectable={isConnectable} />
     </Box>

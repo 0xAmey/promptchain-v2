@@ -90,6 +90,7 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 import OpenAI from "openai";
 import { Analytics } from "@vercel/analytics/react";
+import { shortenModelName } from "../utils/shortenModelName";
 
 function App() {
   const toast = useToast();
@@ -358,8 +359,6 @@ function App() {
   const submitPrompt = async () => {
     takeSnapshot();
 
-    const temp = settings.temp;
-
     const parentNodeLineage = selectedNodeLineage;
     const parentNode = selectedNodeLineage[0];
 
@@ -462,7 +461,6 @@ function App() {
             stream: true,
           });
 
-          let text: string = "";
           for await (const part of res) {
             setNodes((newerNodes) => {
               try {
@@ -491,14 +489,6 @@ function App() {
 
       // setNodes((nodes) => setFluxNodeStreamId(nodes, { id: id, streamId: undefined }));
 
-      setEdges((edges) =>
-        modifyFluxEdge(edges, {
-          source: parentNode.id,
-          target: id,
-          animated: false,
-        })
-      );
-
       setNodes(markOnlyNodeAsSelected(newNodes, firstCompletionId!));
       setLastSelectedNodeId(selectedNodeId);
       setSelectedNodeId(firstCompletionId);
@@ -516,6 +506,7 @@ function App() {
             source: parentNode.id,
             target: childId,
             animated: false,
+            label: shortenModelName(model),
           })
         );
 
@@ -881,9 +872,9 @@ function App() {
                          RENAME NODE LOGIC
   //////////////////////////////////////////////////////////////*/
 
-  if (selectedNodeId !== null) {
-    console.log(getFluxNode(nodes, selectedNodeId)?.type);
-  }
+  // if (selectedNodeId !== null) {
+  //   console.log(getFluxNode(nodes, selectedNodeId)?.type);
+  // }
 
   const showRenameInput = () => {
     const selectedNode = nodes.find((node) => node.selected);
