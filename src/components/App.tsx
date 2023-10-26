@@ -409,7 +409,6 @@ function App() {
       if (model === "gpt-3.5-turbo" || model === "gpt-4") {
         const allMessgaes = messagesFromLineage(parentNodeLineage, settings);
         const ctxLen = model === "gpt-4" ? 7000 : 3000;
-        console.log(allMessgaes);
         let totLen = 0;
         for (let idx = 1; idx < allMessgaes.length; idx++) {
           let currLen = allMessgaes[idx].content?.length;
