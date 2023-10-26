@@ -376,8 +376,6 @@ function App() {
       const id = generateNodeId();
       const streamId = generateStreamId();
 
-      if (i === 0) firstCompletionId = id;
-
       // create a new node.
       newNodes.push(
         newFluxNode({
@@ -409,6 +407,42 @@ function App() {
       );
 
       if (model === "gpt-3.5-turbo" || model === "gpt-4") {
+        const allMessgaes = messagesFromLineage(parentNodeLineage, settings);
+        const ctxLen = model === "gpt-4" ? 7000 : 3000;
+        console.log(allMessgaes);
+        let totLen = 0;
+        for (let idx = 1; idx < allMessgaes.length; idx++) {
+          let currLen = allMessgaes[idx].content?.length;
+          if (typeof currLen === "number") {
+            totLen += currLen;
+          }
+        }
+
+        if (totLen / 4 > ctxLen) {
+          while (totLen / 4 > ctxLen) {
+            let currLen = allMessgaes[1].content?.length;
+            if (typeof currLen === "number") {
+              totLen -= currLen;
+            }
+            allMessgaes.splice(1, 1);
+          }
+        }
+
+        const selectedNode = getFluxNode(nodes, selectedNodeId as string);
+        const currLen = selectedNode?.data.text.length;
+        if (typeof currLen === "number" && currLen / 4 > 7500) {
+          new Error(`Sorry, cannot send messages larger than ${ctxLen + 1000} tokens`);
+          toast({
+            title: `Sorry, cannot send messages larger than ${ctxLen + 1000} tokens`,
+            status: "error",
+            ...TOAST_CONFIG,
+          });
+
+          continue;
+        }
+
+        if (i === 0) firstCompletionId = id;
+
         const openai = new OpenAI({
           apiKey: openAiApiKey as string,
           dangerouslyAllowBrowser: true,
@@ -417,7 +451,7 @@ function App() {
         (async () => {
           const res = await openai.chat.completions.create({
             model: model,
-            messages: messagesFromLineage(parentNodeLineage, settings),
+            messages: allMessgaes,
             stream: true,
           });
 
@@ -518,6 +552,23 @@ function App() {
 
     if (MIXPANEL_TOKEN) mixpanel.track("Submitted Prompt"); // KPI
   };
+
+  /*//////////////////////////////////////////////////////////////
+                        HISTORY TITLE
+  //////////////////////////////////////////////////////////////*/
+
+  const [historyTitle, setHistoryTitle] = useState<string | undefined>(() => {
+    if (nodes.length > 1) {
+      return nodes[1].data.label;
+    } else {
+      return undefined;
+    }
+  });
+
+  useEffect(() => {
+    if (nodes.length > 1) setHistoryTitle(nodes[1].data.label);
+    else setHistoryTitle(undefined);
+  }, [nodes[1]]);
 
   /*//////////////////////////////////////////////////////////////
                           SELECTED NODE LOGIC
@@ -931,7 +982,9 @@ function App() {
 
   useHotkeys(
     `${modifierKey}+shift+p`,
-    () => newUserNodeLinkedToANewSystemNode(),
+    () => {
+      newUserNodeLinkedToANewSystemNode();
+    },
     HOTKEY_CONFIG
   );
 

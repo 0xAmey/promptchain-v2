@@ -154,7 +154,6 @@ export function Prompt({
           setActiveModels={setActiveModels}
         />
 
-        {/* Display clickable buttons for 4 different models */}
         {lineage
           .slice()
           .reverse()

@@ -55,14 +55,16 @@ export function messagesFromLineageForHuggingFaceConversational(
 
 export function messagesFromLineage(
   lineage: Node<FluxNodeData>[],
-  settings: Settings
+  settings: Settings,
+  model?: string | undefined
 ): ChatCompletionMessageParam[] {
   const messages: ChatCompletionMessageParam[] = [];
+  let totLen = 0;
 
   // Iterate backwards.
   for (let i = lineage.length - 1; i >= 0; i--) {
     const node = lineage[i];
-
+    totLen += node.data.text.length;
     if (node.data.fluxNodeType === FluxNodeType.System) {
       messages.push({
         role: "system",
@@ -93,8 +95,6 @@ export function messagesFromLineage(
       });
     }
   }
-
-  console.table(messages);
 
   return messages;
 }
