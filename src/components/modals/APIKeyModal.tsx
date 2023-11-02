@@ -72,7 +72,7 @@ export function APIKeyModal({
             Your API Keys will <b>never</b> leave your browser's local storage. Check for
             yourself{" "}
             <Link
-              href={"https://github.com/ameywtf/promptchain-v2"}
+              href={"https://github.com/0xAmey/promptchain-v2"}
               color={"#2E8251"}
               isExternal={true}
             >
